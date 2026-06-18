@@ -1,1 +1,1427 @@
+<!DOCTYPE html>
 
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dépannage DPi1500 — HME-Drilling</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js"></script>
+<style>
+  :root{
+    --navy:#0f2540; --navy-2:#16335a; --navy-3:#1d4276;
+    --amber:#f0a818; --amber-soft:#ffd980;
+    --ink:#0b1a2e; --paper:#f4f6fa; --line:#d5deea;
+    --ok:#1f9d6b; --warn:#d98314; --crit:#c2412d;
+    --muted:#6b7c93; --sandvik:#0a6ebd;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--paper);color:var(--ink);line-height:1.5}
+
+header{background:linear-gradient(135deg,var(–navy),var(–navy-3));color:#fff;padding:18px 16px;position:sticky;top:0;z-index:20;box-shadow:0 2px 12px rgba(11,26,46,.25)}
+header .row{display:flex;align-items:center;gap:12px;max-width:760px;margin:0 auto}
+.logo{width:46px;height:46px;border-radius:10px;background:var(–amber);display:grid;place-items:center;font-weight:800;color:var(–navy);font-size:13px;flex-shrink:0;letter-spacing:-.5px}
+header h1{font-size:18px;font-weight:700;letter-spacing:.3px}
+header p{font-size:12px;color:var(–amber-soft);font-weight:600}
+
+.wrap{max-width:760px;margin:0 auto;padding:16px}
+
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tab{flex:1;min-width:calc(50% - 4px);padding:11px 8px;border:none;border-radius:10px;background:#fff;color:var(–navy);font-weight:700;font-size:13.5px;cursor:pointer;border:1.5px solid var(–line);transition:.15s}
+.tab.active{background:var(–navy);color:#fff;border-color:var(–navy)}
+
+.search{display:flex;gap:8px;margin-bottom:16px}
+.search input{flex:1;padding:12px 14px;border:1.5px solid var(–line);border-radius:10px;font-size:15px;background:#fff}
+.search input:focus{outline:none;border-color:var(–amber)}
+
+.sys-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.sys-card{background:#fff;border:1.5px solid var(–line);border-radius:14px;padding:18px 14px;cursor:pointer;transition:.15s;display:flex;flex-direction:column;gap:8px}
+.sys-card:hover{border-color:var(–amber);transform:translateY(-2px);box-shadow:0 6px 18px rgba(15,37,64,.08)}
+.sys-ico{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:24px}
+.sys-card h3{font-size:15px;color:var(–navy)}
+.sys-card small{color:var(–muted);font-size:12px}
+
+.crumb{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:14px;font-size:13px;color:var(–muted)}
+.crumb b{color:var(–navy)}
+.crumb .sep{color:var(–line)}
+.back{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1.5px solid var(–line);color:var(–navy);padding:9px 14px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:14px}
+
+.panel{background:#fff;border:1.5px solid var(–line);border-radius:14px;padding:16px;margin-bottom:12px}
+.panel-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.panel-head .ico{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:20px;flex-shrink:0}
+.panel-head h2{font-size:16px;color:var(–navy)}
+
+.symptom{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px;border:1.5px solid var(–line);border-radius:11px;cursor:pointer;margin-bottom:10px;transition:.15s}
+.symptom:hover{border-color:var(–amber);background:#fffdf6}
+.symptom span{font-weight:600;font-size:14.5px;color:var(–ink)}
+.symptom .arrow{color:var(–amber);font-size:18px;font-weight:800}
+
+.step{display:flex;gap:12px;padding:13px 0;border-bottom:1px solid var(–line)}
+.step:last-child{border-bottom:none}
+.step-num{width:26px;height:26px;border-radius:50%;background:var(–navy);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:800;flex-shrink:0}
+.step-body h4{font-size:14.5px;color:var(–navy);margin-bottom:3px}
+.step-body p{font-size:13.5px;color:var(–muted)}
+.step-body code{background:var(–paper);padding:1px 6px;border-radius:5px;font-size:12.5px;color:var(–navy-3);font-weight:700}
+
+.cause{border-left:3px solid var(–amber);padding:10px 12px;margin-bottom:10px;background:#fffdf6;border-radius:0 8px 8px 0}
+.cause .top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px}
+.cause h4{font-size:14px;color:var(–navy)}
+.cause p{font-size:13px;color:var(–muted)}
+.badge{font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px;flex-shrink:0}
+.b-high{background:#fbe4df;color:var(–crit)}
+.b-med{background:#fdeccd;color:var(–warn)}
+.b-low{background:#dcf2e8;color:var(–ok)}
+
+.ref-card{background:#fff;border:1.5px solid var(–line);border-radius:12px;padding:14px;margin-bottom:10px}
+.ref-card .top{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.ref-tag{font-family:‘Courier New’,monospace;font-weight:800;background:var(–navy);color:var(–amber-soft);padding:5px 10px;border-radius:7px;font-size:14px}
+.ref-card h4{font-size:14px;color:var(–navy);flex:1;min-width:140px}
+.ref-card .desc{font-size:13.5px;color:var(–ink);margin-bottom:8px}
+.ref-card .action{font-size:13px;color:var(–muted);background:var(–paper);padding:9px 11px;border-radius:8px;border-left:3px solid var(–ok)}
+.ref-card .action b{color:var(–navy)}
+
+table.spec{width:100%;border-collapse:collapse;font-size:13.5px}
+table.spec td{padding:8px 10px;border-bottom:1px solid var(–line)}
+table.spec td:first-child{color:var(–muted)}
+table.spec td:last-child{font-weight:700;color:var(–navy);text-align:right}
+
+.empty{text-align:center;padding:36px 16px;color:var(–muted)}
+.empty .big{font-size:40px;margin-bottom:8px}
+
+.safety{background:#fbe4df;border:1.5px solid #f0b8ae;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start}
+.safety .ico{font-size:20px}
+.safety p{font-size:13px;color:var(–crit);font-weight:600}
+
+.info{background:#e7f1fb;border:1.5px solid #bcd8f2;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(–navy-3)}
+.info b{color:var(–navy)}
+
+footer{text-align:center;padding:24px 16px;color:var(–muted);font-size:12px}
+.hidden{display:none}
+
+/* Lock screen */
+#lock{position:fixed;inset:0;z-index:1000;background:linear-gradient(160deg,var(–navy),var(–navy-3));display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+#lock .box{width:100%;max-width:340px;text-align:center}
+#lock .lk-logo{width:64px;height:64px;border-radius:16px;background:var(–amber);display:grid;place-items:center;font-weight:800;color:var(–navy);font-size:18px;margin:0 auto 18px}
+#lock h2{color:#fff;font-size:20px;margin-bottom:4px}
+#lock p{color:var(–amber-soft);font-size:13px;margin-bottom:22px}
+#lock input{width:100%;padding:14px 16px;border:none;border-radius:12px;font-size:18px;text-align:center;letter-spacing:2px;margin-bottom:12px}
+#lock input:focus{outline:3px solid var(–amber)}
+#lock button.unlock{width:100%;padding:14px;border:none;border-radius:12px;background:var(–amber);color:var(–navy);font-weight:800;font-size:16px;cursor:pointer}
+#lock .err{color:#ffc4b8;font-size:13px;font-weight:600;min-height:18px;margin-bottom:10px}
+#lock .tool-toggle{margin-top:26px;color:#7da0c8;font-size:12px;cursor:pointer;text-decoration:underline}
+#lock .tool{margin-top:16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:14px;text-align:left}
+#lock .tool h3{color:#fff;font-size:13px;margin-bottom:8px}
+#lock .tool input{font-size:14px;letter-spacing:0;text-align:left;margin-bottom:8px}
+#lock .tool button{width:100%;padding:10px;border:none;border-radius:9px;background:var(–navy-2);color:#fff;font-weight:700;cursor:pointer;font-size:13px;border:1px solid rgba(255,255,255,.2)}
+#lock .tool .hashout{margin-top:10px;font-family:‘Courier New’,monospace;font-size:11px;color:var(–amber-soft);word-break:break-all;background:rgba(0,0,0,.25);padding:8px;border-radius:7px;display:none}
+body.locked{overflow:hidden}
+</style>
+
+</head>
+<body class="locked">
+
+<!-- ============ ÉCRAN DE VERROUILLAGE ============ -->
+
+<div id="lock">
+  <div class="box">
+    <div class="lk-logo">DPi</div>
+    <h2>Accès protégé</h2>
+    <p>Dépannage DP1500i · HME-Drilling</p>
+    <div class="err" id="lockErr"></div>
+    <input type="password" id="lockInput" inputmode="numeric" placeholder="Code d'accès" autocomplete="off"
+           onkeydown="if(event.key==='Enter')tryUnlock()">
+    <button class="unlock" onclick="tryUnlock()">Déverrouiller</button>
+
+```
+<div class="tool-toggle" onclick="toggleHashTool()">🔧 Générer un hash de code (configuration)</div>
+<div class="tool hidden" id="hashTool">
+  <h3>Outil de configuration du code</h3>
+  <input type="text" id="hashSrc" placeholder="Tape ici ton nouveau code" autocomplete="off">
+  <button onclick="genHash()">Générer le hash</button>
+  <div class="hashout" id="hashOut"></div>
+  <p style="color:#9db8d4;font-size:11px;margin-top:8px;line-height:1.4">Copie ce hash et remplace la valeur de <b style="color:#fff">ACCESS_HASH</b> tout en haut du script. Ton code réel n'est jamais enregistré dans le fichier.</p>
+</div>
+```
+
+  </div>
+</div>
+
+<header>
+  <div class="row">
+    <div class="logo">DPi</div>
+    <div>
+      <h1>Dépannage DP1500i</h1>
+      <p>Sandvik Pantera DP1500i · HME-Drilling</p>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="tabs">
+    <button class="tab active" id="tabAlarm" onclick="switchTab('alarm')">🚨 Analyse panne</button>
+    <button class="tab" id="tabDiag" onclick="switchTab('diag')">🔧 Diagnostic</button>
+    <button class="tab" id="tabComp" onclick="switchTab('comp')">📟 Composants</button>
+    <button class="tab" id="tabState" onclick="switchTab('state')">🔵 États comp.</button>
+    <button class="tab" id="tabSpec" onclick="switchTab('spec')">📐 Données</button>
+    <button class="tab" id="tabSchema" onclick="switchTab('schema')">🔌 Schémas</button>
+    <button class="tab" id="tabUi" onclick="switchTab('ui')">📱 Système v6.0</button>
+    <button class="tab" id="tabDocs" onclick="switchTab('docs')">📄 Manuels</button>
+  </div>
+
+  <!-- ============ ANALYSE PANNE ============ -->
+
+  <div id="viewAlarm">
+    <div class="info">Saisis le message affiché à l'écran de la DP1500i, ou <b>prends une photo de l'écran</b> et l'app lit le texte automatiquement. Le module recherche la panne, affiche les causes probables et les tests à réaliser, et garde l'historique.</div>
+
+```
+<div style="display:flex;gap:8px;margin-bottom:12px">
+  <label for="photoInput" style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--navy);color:#fff;padding:13px;border-radius:10px;font-weight:700;font-size:14.5px;cursor:pointer">
+    📷 Photo de l'écran
+  </label>
+  <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePhoto(this)">
+</div>
+<div id="ocrStatus" style="display:none;margin-bottom:12px;padding:11px 14px;border-radius:10px;font-size:13.5px;font-weight:600"></div>
+<div id="ocrPreview"></div>
+
+<div class="search">
+  <input type="text" id="alarmInput" placeholder="🔍 Message d'erreur (ou texte lu par la photo)…" oninput="analyzeAlarm(this.value)">
+</div>
+<div id="alarmResult"></div>
+<div id="alarmHistory"></div>
+```
+
+  </div>
+
+  <!-- ============ DIAGNOSTIC ============ -->
+
+  <div id="viewDiag" class="hidden">
+    <div id="lvlSystem">
+      <div class="search">
+        <input type="text" id="searchSymptom" placeholder="🔍 Rechercher un symptôme…" oninput="searchSymptoms(this.value)">
+      </div>
+      <div id="systemGrid" class="sys-grid"></div>
+      <div id="searchResults" class="hidden"></div>
+    </div>
+
+```
+<div id="lvlSymptom" class="hidden">
+  <button class="back" onclick="goSystem()">← Systèmes</button>
+  <div class="panel">
+    <div class="panel-head">
+      <div class="ico" id="symHeadIco"></div>
+      <h2 id="symHeadTitle"></h2>
+    </div>
+    <div id="symHeadNote"></div>
+    <div id="symptomList"></div>
+  </div>
+</div>
+
+<div id="lvlDetail" class="hidden">
+  <button class="back" onclick="goSymptom()">← Symptômes</button>
+  <div class="crumb"><span id="crumbSys2"></span><span class="sep">›</span><b id="crumbSym"></b></div>
+
+  <div class="safety">
+    <span class="ico">⚠️</span>
+    <p>Risque d'injection d'air haute pression. S'assurer qu'il n'y a aucune pression dans le circuit pneumatique et que le moteur ne peut pas démarrer (LOTO) avant toute intervention. La pression repos au récepteur doit retomber à 0,5 bar.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><div class="ico" style="background:#fdeccd">🔎</div><h2>Vérifications guidées</h2></div>
+    <div id="stepsList"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><div class="ico" style="background:#fbe4df">🎯</div><h2>Causes probables</h2></div>
+    <div id="causesList"></div>
+  </div>
+</div>
+```
+
+  </div>
+
+  <!-- ============ COMPOSANTS ============ -->
+
+  <div id="viewComp" class="hidden">
+    <div class="search">
+      <input type="text" id="searchComp" placeholder="🔍 Repère (B240T, Y605, 604.03…) ou mot-clé" oninput="searchComps(this.value)">
+    </div>
+    <div id="compList"></div>
+  </div>
+
+  <!-- ============ ÉTATS COMPRESSEUR ============ -->
+
+  <div id="viewState" class="hidden">
+    <div class="info">Écran <b>Troubleshooting → Compressor</b>. Un signal <b>bleu</b> à côté d'un actionneur = signal actif (commandé ou lu). États visibles dans la vue Compressor (10).</div>
+    <div id="stateList"></div>
+  </div>
+
+  <!-- ============ DONNÉES TECHNIQUES ============ -->
+
+  <div id="viewSpec" class="hidden">
+    <div id="specList"></div>
+  </div>
+
+  <!-- ============ SCHÉMAS / LECTURE ============ -->
+
+  <div id="viewSchema" class="hidden">
+    <div class="info">Aide à la lecture des schémas électriques Sandvik Pantera DP1500i : couleurs de fils, convention CAN, types de signaux et méthode de recherche d'une pièce.</div>
+    <div id="schemaList"></div>
+  </div>
+
+  <!-- ============ SYSTÈME v6.0 ============ -->
+
+  <div id="viewUi" class="hidden">
+    <div class="info">Système de commande Sandvik DPi version <b>6.0</b> (Dragonfly). Navigation tactile, niveaux d'accès et écran de dépannage.</div>
+    <div id="uiList"></div>
+  </div>
+
+  <!-- MANUELS : recherche composant -> document + page -->
+
+  <div id="viewDocs" class="hidden">
+    <div class="info">Tape le <b>nom d'un composant</b> (en français ou en anglais) ou son <b>repère</b> (B240T, Y605...). L'app te donne le document et la page exacte — tu ouvres ensuite ce PDF depuis tes propres fichiers sur le téléphone.</div>
+    <div class="search">
+      <input type="text" id="docSearch" placeholder="🔍 ex: compressor temperature sensor, capteur température, B240T" oninput="searchDocs(this.value)">
+    </div>
+    <div id="docResult"></div>
+    <div id="docListAll"></div>
+  </div>
+
+</div>
+
+<footer>Module Dépannage DPi1500 · données issues des manuels Sandvik Pantera DPi · à intégrer au GMAO</footer>
+
+<script>
+/* ====================== VERROUILLAGE ====================== */
+/* ACCESS_HASH = empreinte SHA-256 du code d'accès (le code réel n'est pas stocké).
+   Code actuel : 004810. Pour le changer : ouvre l'outil "Générer un hash" sur
+   l'écran de verrouillage, tape ton nouveau code, et remplace la valeur ci-dessous. */
+const ACCESS_HASH = "c7098be307ca45edce57650a31905a4a1d37469d3781e2d6deec6ab208e2fa4f";
+const UNLOCK_KEY = "dpi_unlocked_v1";
+
+async function sha256(str){
+  const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function tryUnlock(){
+  const inp=document.getElementById('lockInput');
+  const err=document.getElementById('lockErr');
+  const code=(inp.value||'').trim();
+  if(!code){ err.textContent='Saisis le code d\'accès.'; return; }
+  const h=await sha256(code);
+  if(h===ACCESS_HASH){
+    try{ localStorage.setItem(UNLOCK_KEY,'1'); }catch(e){}
+    unlockApp();
+  }else{
+    err.textContent='Code incorrect.';
+    inp.value=''; inp.focus();
+  }
+}
+function unlockApp(){
+  const lock=document.getElementById('lock');
+  if(lock) lock.style.display='none';
+  document.body.classList.remove('locked');
+}
+function toggleHashTool(){
+  document.getElementById('hashTool').classList.toggle('hidden');
+}
+async function genHash(){
+  const src=(document.getElementById('hashSrc').value||'').trim();
+  const out=document.getElementById('hashOut');
+  if(!src){ out.style.display='block'; out.textContent='Tape d\'abord un code.'; return; }
+  const h=await sha256(src);
+  out.style.display='block';
+  out.textContent=h;
+}
+/* Déverrouillage automatique si déjà autorisé sur cet appareil */
+(function(){
+  try{ if(localStorage.getItem(UNLOCK_KEY)==='1'){ unlockApp(); } }catch(e){}
+})();
+
+/* ====================== SYSTÈMES ====================== */
+const SYSTEMS = [
+  {id:'comp_press', name:'Pression air', sub:'Basse / haute / insuffisante', ico:'🌀', bg:'#d6f0ec'},
+  {id:'comp_temp', name:'Surchauffe comp.', sub:'Température / refroidissement', ico:'🔥', bg:'#fbe4df'},
+  {id:'comp_oil', name:'Huile compresseur', sub:'Consommation / filtre', ico:'🛢️', bg:'#fdeccd'},
+  {id:'slu', name:'Lubrif. emmanchement', sub:'SLU / débit huile', ico:'💧', bg:'#d7e9fb'},
+  {id:'can', name:'Communication CAN', sub:'Bus / modules / capteurs', ico:'⚡', bg:'#fef3c7'},
+  {id:'sensors', name:'Capteurs comp.', sub:'B240T / B605P / signaux', ico:'📡', bg:'#e4e0f7'},
+  {id:'drilling', name:'Forage & avance', sub:'Pression / rotation / feed', ico:'⛏️', bg:'#e8e0d4'},
+  {id:'rodhandling', name:'Manip. de tiges', sub:'Cassette / mâchoires / SLU', ico:'🦾', bg:'#dde8e4'},
+  {id:'powerpack', name:'Moteur & groupe', sub:'CAT C11 / pompes / refroid.', ico:'🛠️', bg:'#fde8d4'},
+  {id:'hydro', name:'Hydraulique princ.', sub:'Pompes / tarages / pilote', ico:'💠', bg:'#d7e9fb'},
+];
+
+/* ====================== BASE DIAGNOSTIC ====================== */
+const DB = {
+  comp_press:[
+    {sym:'Pression d\'air basse ou débit insuffisant',
+     steps:[
+       {t:'Démarrer le moteur diesel',d:'Lire la pression sous Compressor pressure (B605P.1). Au repos sans air consommé elle doit être de 0,5 bar.'},
+       {t:'Si la pression ne tombe pas à 0,5 bar',d:'La valve 603 envoie la pression derrière l\'intake valve (607.02) et celle-ci ne s\'ouvre pas.'},
+       {t:'Contrôler l\'intake valve (607.02)',d:'Vérifier qu\'elle n\'est pas bloquée fermée et que le trou de respiration de la bride n\'est pas obstrué.'},
+       {t:'Contrôler la proportionnelle Y605 (603)',d:'Vérifier sous Pressure control (Y605). Le tiroir peut être déplacé manuellement avec une clé Allen 3 mm. Contrôler bobine et câblage.'},
+     ],
+     causes:[
+       {t:'Intake valve (607.02) bloquée fermée',sev:'high',d:'Valve coincée ou trou de respiration de la bride colmaté.'},
+       {t:'Valve proportionnelle 603 / Y605 défaillante',sev:'high',d:'Réglage incorrect ou valve en panne. Vérifier bobine et câblage.'},
+       {t:'Filtre à air colmaté',sev:'med',d:'Le système affiche un message si le filtre est bouché (B605P.2). Remplacer la cartouche.'},
+     ]},
+    {sym:'Pression d\'air trop élevée',
+     steps:[
+       {t:'La pression monte jusqu\'à la soupape de sûreté',d:'La pression atteint le tarage de la soupape 604.03 (11,7 bar).'},
+       {t:'Contrôler la proportionnelle Y605 (603)',d:'Vérifier sous Pressure control. Tiroir déplaçable avec clé Allen 3 mm. Consulter le journal pour alerte résistance de bobine du clapet d\'aspiration (fil coupé, court-circuit, bobine défectueuse).'},
+       {t:'Contrôler le joint de piston de l\'intake valve (607.02)',d:'Si de l\'air s\'échappe par le trou de respiration au-dessus du piston, moteur tournant et intake valve fermée, remplacer les joints de piston.'},
+     ],
+     causes:[
+       {t:'Valve proportionnelle 603 / Y605 fausse le réglage',sev:'high',d:'Réglage incorrect ou valve défectueuse. Vérifier la bobine et le câblage.'},
+       {t:'Joint de piston de l\'intake valve fuyard',sev:'high',d:'L\'intake valve ne se ferme plus. Remplacer les joints de piston.'},
+     ]},
+  ],
+  comp_temp:[
+    {sym:'Le compresseur a surchauffé',
+     steps:[
+       {t:'Niveau d\'huile compresseur',d:'Trop peu d\'huile dans le circuit. Compléter sans dépasser (~1/3 de la hauteur du voyant suffit). Éviter le surremplissage.'},
+       {t:'Thermostat (613)',d:'Circulation d\'huile à travers le cooler partiellement/totalement obstruée. Contrôler son fonctionnement et son état.'},
+       {t:'Cooler d\'huile (606) encrassé',d:'Nettoyer le faisceau. À l\'air comprimé : ne pas dépasser 4 bar.'},
+       {t:'Filtre à huile (612.03)',d:'Filtre colmaté = mauvaise circulation et refroidissement. Remplacer. Contrôler aussi le filtre à air (607.03) et l\'étanchéité du conduit d\'admission.'},
+       {t:'Pression de sortie',d:'Vérifier sur l\'écran : doit être 0,5 bar quand aucun air n\'est demandé. Pression trop basse = mauvaise circulation d\'huile.'},
+       {t:'Viscosité / air dans le cooler',d:'Huile trop épaisse ou présence d\'air dans le faisceau (606). Purger, changer de type d\'huile si moussage.'},
+       {t:'Ventilateur de refroidissement',d:'Sur l\'écran diagnostic, consulter le journal pour alerte résistance bobine Y920 (panne circuit pompe refroidissement comp./huile).'},
+     ],
+     causes:[
+       {t:'Manque d\'huile compresseur',sev:'high',d:'Compléter au bon niveau (~1/3 du voyant), sans surremplir.'},
+       {t:'Cooler d\'huile (606) encrassé',sev:'high',d:'Milieu poussiéreux. Nettoyer le faisceau (air ≤ 4 bar).'},
+       {t:'Thermostat (613) défaillant',sev:'med',d:'Obstrue la circulation par le cooler. Contrôler/remplacer.'},
+       {t:'Filtre à huile (612.03) colmaté',sev:'med',d:'Mauvaise circulation et refroidissement. Remplacer.'},
+       {t:'Ventilateur lent / bobine Y920',sev:'med',d:'Fil coupé, court-circuit ou bobine défectueuse. Voir journal.'},
+       {t:'Huile trop visqueuse ou moussante',sev:'low',d:'Vérifier le grade d\'huile selon recommandations.'},
+     ]},
+  ],
+  comp_oil:[
+    {sym:'Consommation d\'huile trop élevée',
+     steps:[
+       {t:'Ligne de retour d\'huile colmatée',d:'Trop d\'huile dans la chambre du séparateur, l\'huile se mélange à l\'air sortant. Nettoyer l\'orifice 604.05 (Ø 1,6 mm) en haut du récepteur, la crépine 604.04 et le clapet anti-retour 604.06.'},
+       {t:'Élément séparateur (604.08)',d:'Vérifier l\'état des éléments séparateurs et de leurs joints toriques (trous possibles dans l\'élément).'},
+       {t:'Niveau d\'huile',d:'Trop d\'huile dans le circuit. Ramener au niveau correct.'},
+       {t:'Moussage de l\'huile',d:'Vérifier le grade d\'huile et le niveau.'},
+     ],
+     causes:[
+       {t:'Ligne de régénération colmatée',sev:'high',d:'Orifice 604.05, crépine 604.04, clapet 604.06 à nettoyer.'},
+       {t:'Élément séparateur (604.08) percé ou joint HS',sev:'high',d:'Remplacer l\'élément et son O-ring.'},
+       {t:'Surremplissage d\'huile',sev:'med',d:'Décharger jusqu\'au niveau correct.'},
+       {t:'Huile moussante / mauvais grade',sev:'low',d:'Vérifier recommandation d\'huile.'},
+     ]},
+  ],
+  slu:[
+    {sym:'Pas de débit d\'huile, message d\'erreur',
+     steps:[
+       {t:'Niveau du réservoir',d:'Niveau trop bas : ajouter l\'huile et purger la pompe avec la vis de purge (CT7).'},
+       {t:'Aspiration pompe',d:'Ouverture d\'aspiration colmatée : contrôler et nettoyer le réservoir.'},
+       {t:'Tube intérieur',d:'Tube interne colmaté : déposer, nettoyer ou remplacer.'},
+       {t:'Pression de pompe',d:'Pas de pression de service : défaut dans le circuit hydraulique.'},
+       {t:'Électrovanne / câblage',d:'Électrovanne (CT5) cassée ou fil coupé : contrôler/remplacer. Vérifier le flexible de pression d\'emmanchement.'},
+     ],
+     causes:[
+       {t:'Niveau d\'huile trop bas',sev:'high',d:'Ajouter l\'huile et purger (CT7).'},
+       {t:'Aspiration ou tube interne colmaté',sev:'med',d:'Nettoyer le réservoir / le tube intérieur.'},
+       {t:'Électrovanne (CT5) ou fil cassé',sev:'high',d:'Contrôler/remplacer la valve ou le fil.'},
+       {t:'Viscosité trop haute',sev:'low',d:'Choisir un type d\'huile adapté.'},
+     ]},
+    {sym:'Débit d\'huile trop faible',
+     steps:[
+       {t:'Air dans la pompe',d:'Vérifier le niveau du réservoir et purger la pompe.'},
+       {t:'Clapet anti-retour aspiration',d:'Corps étranger dans la bille du clapet côté aspiration : nettoyer.'},
+       {t:'Clapet du bouchon de commande',d:'Corps étranger : nettoyer le bouchon de commande / le réservoir.'},
+       {t:'Bouchon de remplissage / reniflard',d:'Reniflard colmaté (sous-pression) : nettoyer. Vérifier le retour vers le bac collecteur.'},
+     ],
+     causes:[
+       {t:'Air dans la pompe',sev:'med',d:'Purger après contrôle du niveau.'},
+       {t:'Clapet aspiration encrassé',sev:'med',d:'Nettoyer la bille du clapet.'},
+       {t:'Reniflard colmaté (sous-pression)',sev:'low',d:'Nettoyer le reniflard.'},
+       {t:'Retour vers bac collecteur bouché',sev:'low',d:'Déboucher la conduite.'},
+     ]},
+    {sym:'Débit d\'huile trop élevé',
+     steps:[
+       {t:'Vis de purge hydraulique',d:'Vis de purge restée ouverte : la resserrer.'},
+       {t:'Joints de piston',d:'Joints de piston cassés : contrôler le piston et changer les joints.'},
+       {t:'Fonction boost',d:'Fonction boost activée : contrôler et la désactiver.'},
+     ],
+     causes:[
+       {t:'Vis de purge ouverte',sev:'med',d:'Resserrer la vis.'},
+       {t:'Joints de piston cassés',sev:'high',d:'Changer les joints du piston.'},
+       {t:'Boost activé',sev:'low',d:'Désactiver la fonction boost.'},
+     ]},
+    {sym:'Débit normal mais alarme de contrôle',
+     steps:[
+       {t:'Fil du bouchon de commande',d:'Fil cassé : contrôler et remplacer.'},
+       {t:'Qualité de l\'huile',d:'Huile sale et conductrice : changer l\'huile du réservoir d\'emmanchement.'},
+       {t:'Capteur de débit',d:'Capteur usé (surface de bille corrodée) : contrôler/remplacer l\'ensemble flow-switch.'},
+     ],
+     causes:[
+       {t:'Fil du bouchon de commande cassé',sev:'med',d:'Contrôler et remplacer le fil.'},
+       {t:'Huile sale / conductrice',sev:'med',d:'Vidanger le réservoir SLU.'},
+       {t:'Capteur de débit usé',sev:'low',d:'Remplacer l\'ensemble flow-switch.'},
+     ]},
+  ],
+  can:[
+    {sym:'Perte de communication d\'un module',
+     steps:[
+       {t:'Identifier le réseau',d:'La DPi utilise plusieurs bus : CAN BB, CAN PRG, CAN HMI, et CAN J1939 (moteur). Repérer quel module est muet (FCC, RCC, DM, ECM, SM, ACU…).'},
+       {t:'Alimentation et masse du module',d:'Contrôler le 24V et les masses sur le module concerné via sa boîte de jonction (St / Ex).'},
+       {t:'Terminaisons du bus',d:'Vérifier la présence des terminateurs. La structure inclut un terminateur interne et un externe (terminator si pas de radio).'},
+       {t:'Connecteurs et faisceau',d:'Corrosion, broches reculées, frottement. Milieu poussiéreux/humide = cause fréquente.'},
+     ],
+     causes:[
+       {t:'Terminaison de bus manquante/HS',sev:'high',d:'Sans terminateur, le bus tombe. Vérifier interne + externe.'},
+       {t:'Alimentation/masse module',sev:'high',d:'Contrôler 24V et masses à la boîte de jonction.'},
+       {t:'Connecteur corrodé',sev:'med',d:'Fréquent en milieu sévère. Nettoyer/remplacer.'},
+       {t:'Module défaillant',sev:'med',d:'Isoler en déconnectant module par module.'},
+     ]},
+    {sym:'Capteur signalé hors plage (pop-up + alarme)',
+     steps:[
+       {t:'Type de défaut',d:'Le système informe par pop-up et journalise l\'alarme si le signal est hors plage : fil coupé, court-circuit ou capteur défectueux.'},
+       {t:'Capteurs concernés',d:'Y605 (commande intake valve), B605P.1 (pression récepteur), B240T (température). Sur défaut → pop-up + alarme au journal.'},
+       {t:'Câblage et connecteur',d:'Continuité, court-circuit à la masse / au +. Contrôler le connecteur.'},
+       {t:'Substitution',d:'Confirmer en remplaçant par un capteur sain.'},
+     ],
+     causes:[
+       {t:'Faisceau coupé ou en court-circuit',sev:'high',d:'Cause typique du signal hors plage.'},
+       {t:'Capteur défectueux',sev:'med',d:'Confirmer par substitution.'},
+       {t:'Bobine de valve (Y605) défaillante',sev:'med',d:'Court-circuit, fil coupé ou bobine HS.'},
+     ]},
+  ],
+  sensors:[
+    {sym:'Bypass d\'un capteur (sortie de tige / déplacement)',
+     steps:[
+       {t:'Accéder au bypass',d:'Troubleshooting → Bypass, puis sélectionner le capteur à bypasser.'},
+       {t:'Bypass pression B605P.1',d:'Si capteur cassé, le compresseur passe en état Off. Le bypass permet d\'ouvrir partiellement l\'intake valve pour le flushing. Forage normal impossible (pression récepteur inconnue).'},
+       {t:'Bypass température B240T',d:'Si capteur cassé, le moteur s\'arrête. Le bypass permet de redémarrer le moteur, ventilateurs huile hydraulique + comp. réglés au refroidissement max. Forage normal impossible.'},
+       {t:'Objectif',d:'Sortir l\'outil de forage du trou et pouvoir déplacer la foreuse, pas reprendre le forage.'},
+     ],
+     causes:[
+       {t:'Capteur pression B605P.1 cassé',sev:'high',d:'Compresseur forcé Off. Bypass = flushing seulement.'},
+       {t:'Capteur température B240T cassé',sev:'high',d:'Moteur s\'arrête. Bypass = refroidissement max + déplacement.'},
+     ]},
+  ],
+  drilling:[
+    {sym:'Lecture d\'une pression de forage erronée / hors plage',
+     steps:[
+       {t:'Identifier le capteur concerné',d:'Tous les capteurs de pression sont en signal analogique 4-20 mA, raccordés au Drilling Master (DM) via la boîte de jonction DMJB.'},
+       {t:'Capteurs et plages',d:'B3P.1 avance avant (port A, 400 bar) · B3P.2 avance arrière (port B, 400 bar) · B125P stabilisateur (400 bar) · B5P rotation (400 bar) · B10P.2 flushing air (25 bar).'},
+       {t:'Type de défaut',d:'4-20 mA hors plage = fil coupé, court-circuit ou capteur HS. Vérifier au bornier -XSt correspondant (ex. B3P.1 → XSt:23).'},
+       {t:'Câblage',d:'Contrôler continuité et alimentation 24V (DM_24Vh / DM_GNDh). Vérifier le connecteur du capteur.'},
+       {t:'Substitution',d:'Confirmer en remplaçant par un capteur sain de même plage.'},
+     ],
+     causes:[
+       {t:'Faisceau coupé / court-circuit (4-20 mA)',sev:'high',d:'Signal hors plage. Vérifier au bornier XSt du DM.'},
+       {t:'Capteur de pression défectueux',sev:'med',d:'Confirmer par substitution (même plage 400/25 bar).'},
+       {t:'Alimentation 24V capteur absente',sev:'med',d:'Contrôler DM_24Vh / DM_GNDh au DMJB.'},
+     ]},
+    {sym:'Switch filtre stabilisateur (B124P) actif',
+     steps:[
+       {t:'Type de signal',d:'B124P est un contact tout-ou-rien (DI) au bornier XSt:35 du DM, pas un 4-20 mA.'},
+       {t:'État du filtre',d:'Le switch indique un filtre stabilisateur colmaté ou une pression anormale.'},
+       {t:'Câblage',d:'Vérifier le contact, le fil WB124P (Bn / Bu) et le connecteur.'},
+     ],
+     causes:[
+       {t:'Filtre stabilisateur colmaté',sev:'med',d:'Remplacer / nettoyer selon procédure.'},
+       {t:'Contact ou câblage du switch HS',sev:'low',d:'Vérifier le fil WB124P et le connecteur XSt:35.'},
+     ]},
+    {sym:'Avance ou rotation absente / faible',
+     steps:[
+       {t:'Identifier la fonction',d:'Avance : Y3A (avant) / Y3B (arrière), commande PWM. Rotation : Y5A (CCW) / Y5B (CW), commande DO. Toutes pilotées par le DM.'},
+       {t:'Contrôler la commande',d:'Vérifier le signal au bornier XSt du DM (Y3A→XSt:2, Y3B→XSt:3, Y5A→XSt:4, Y5B→XSt:5).'},
+       {t:'Bobine et câblage de l\'électrovanne',d:'Mesurer la résistance de bobine, vérifier fils WY3/WY5 (BN/BU) et connecteur.'},
+       {t:'Pression hydraulique',d:'Recouper avec la pression mesurée (B3P.1/.2 pour l\'avance, B5P pour la rotation).'},
+     ],
+     causes:[
+       {t:'Bobine d\'électrovanne (Y3/Y5) HS',sev:'high',d:'Court-circuit, fil coupé ou bobine défectueuse.'},
+       {t:'Signal de commande DM absent',sev:'med',d:'Vérifier au bornier XSt correspondant.'},
+       {t:'Pression hydraulique insuffisante',sev:'med',d:'Recouper avec le capteur de pression de la fonction.'},
+     ]},
+  ],
+  rodhandling:[
+    {sym:'Unité d\'échantillonnage ne fonctionne pas',
+     steps:[
+       {t:'Commande des valves',d:'Y780 (trappe sampling unit hatch, DO XSt:11) et Y781 (sampling, DO XSt:13), fils WY780/WY781 (BN/BU).'},
+       {t:'Capteurs de position',d:'S01 (control switch front, DI XSt:36), S02 (DI XSt:38), S03 (bypass line, DI XSt:39). Vérifier les fils W4016/W4017.'},
+       {t:'Porte service / ouverture',d:'Switch porte service (DI XSt:40) et S782 (fonction tournée mécaniquement, WS782).'},
+       {t:'Câblage',d:'Contrôler les contacts au boîtier +XSD et l\'alimentation DM_24Vi / DM_GNDi.'},
+     ],
+     causes:[
+       {t:'Électrovanne Y780/Y781 HS',sev:'high',d:'Bobine ou câblage. Vérifier WY780/WY781 et bornier XSt.'},
+       {t:'Capteur de position S01/S02/S03 défaillant',sev:'med',d:'Contact DI hors plage. Vérifier W4016/W4017.'},
+       {t:'Alimentation 24V DM_24Vi absente',sev:'med',d:'Contrôler au DMJB.'},
+     ]},
+    {sym:'Lubrification emmanchement / SLU (voir aussi onglet dédié)',
+     steps:[
+       {t:'Renvoi au système SLU',d:'Le dépannage détaillé de la lubrification d\'emmanchement (débit nul/faible/élevé, alarme) est dans le système « Lubrif. emmanchement ».'},
+       {t:'SLU air valve',d:'Sur les schémas Drilling, la valve d\'air SLU est commandée avec les valves de forage. Vérifier sa commande au DM.'},
+     ],
+     causes:[
+       {t:'Voir système Lubrif. emmanchement',sev:'low',d:'Tables complètes de pannes SLU disponibles dans l\'onglet diagnostic dédié.'},
+     ]},
+  ],
+  powerpack:[
+    {sym:'Le moteur CAT C11 ne démarre pas',
+     steps:[
+       {t:'Lire les codes J1939 (ECM)',d:'Le moteur communique via CAN J1939 avec l\'ECM. Lire les codes actifs (Cat ET) avant tout démontage.'},
+       {t:'Circuit carburant',d:'Niveau réservoir (680 L), filtre à carburant CAT C11, présence d\'air ou d\'eau. Amorcer si nécessaire.'},
+       {t:'Tension batteries / masses',d:'≥24V au repos, contrôler bornes et masses châssis.'},
+       {t:'Lancement',d:'Le démarreur entraîne-t-il ? Sinon vérifier relais, solénoïde et alimentation.'},
+     ],
+     causes:[
+       {t:'Filtre carburant colmaté / air dans le circuit',sev:'high',d:'Remplacer le filtre CAT C11, purger.'},
+       {t:'Batteries faibles ou masse défectueuse',sev:'high',d:'Recharger/remplacer, resserrer les masses.'},
+       {t:'Code ECM bloquant (J1939)',sev:'med',d:'Lire et traiter le code actif avant relance.'},
+     ]},
+    {sym:'Surchauffe moteur',
+     steps:[
+       {t:'Niveau & fuite circuit eau',d:'Contrôler le vase d\'expansion (surge tank), les durites et le bouchon de pression.'},
+       {t:'Radiateur (engine cooler)',d:'Nettoyer le faisceau (milieu poussiéreux). Air comprimé ≤ 4 bar, à contre-sens.'},
+       {t:'Moteur hydraulique du ventilateur',d:'Le refroidissement est entraîné par un gear motor hydraulique 19 cm³/rev. Vérifier son entraînement et la valve associée.'},
+       {t:'Thermostat moteur',d:'Tester l\'ouverture, recouper avec la température ECM.'},
+     ],
+     causes:[
+       {t:'Faisceau radiateur encrassé',sev:'high',d:'Cause n°1 en milieu poussiéreux. Soufflage à contre-sens.'},
+       {t:'Moteur hydraulique de ventilateur (19 cm³) défaillant',sev:'med',d:'Débit d\'air insuffisant. Vérifier entraînement et valve.'},
+       {t:'Thermostat bloqué fermé',sev:'med',d:'Montée rapide en température.'},
+       {t:'Niveau liquide bas / fuite',sev:'med',d:'Contrôler vase d\'expansion et durites.'},
+     ]},
+    {sym:'Pression hydraulique principale insuffisante',
+     steps:[
+       {t:'Identifier la pompe',d:'Deux pompes à pistons axiaux à cylindrée variable sur la transfer gearbox (4382-SAE1). La principale : 130 cm³/rev à 2100 tr/min.'},
+       {t:'Niveau & température huile hydraulique',d:'Réservoir au niveau, huile non émulsionnée, température correcte.'},
+       {t:'Régulateur de pompe (controller)',d:'Vérifier le compensateur/contrôleur de la pompe 130 cm³ (mauvaise régulation de cylindrée).'},
+       {t:'Pression de tarage',d:'Mesurer sur prise test et comparer à la valeur de réglage (voir manuel hydraulique pour les valeurs exactes).'},
+     ],
+     causes:[
+       {t:'Pompe à pistons axiaux usée',sev:'high',d:'Débit chute en charge, échauffement. Pompe 130 cm³ principale.'},
+       {t:'Contrôleur / compensateur de pompe HS',sev:'med',d:'Mauvaise régulation de cylindrée.'},
+       {t:'Niveau huile bas / aspiration',sev:'med',d:'Risque de cavitation, bruit de pompe.'},
+     ]},
+  ],
+  hydro:[
+    {sym:'Une fonction ne bouge pas (test à l\'override manuel)',
+     steps:[
+       {t:'Pré-requis avant test',d:'Sur défaut, le côté hydraulique de la valve se teste avec le bouton d\'override manuel. La pression pilote (30-35 bar) doit être disponible ET la pression pompe assez haute pour le mouvement.'},
+       {t:'Valves concernées',d:'Bouton d\'override présent sur les valves d\'avance (Feed), de rotation et de translation (Tramming). PAS sur les valves de flèche (boom).'},
+       {t:'Principe',d:'Appuyer sur le bouton pressurise le circuit pilote du tiroir principal → déplace le tiroir → débit vers le circuit. Si ça bouge en manuel mais pas en automatique, le défaut est électrique (commande/capteur).'},
+       {t:'Calibration',d:'Les valves d\'avance (Y3A/B) + relief Y11, et le relief stabilisateur Y125, doivent être calibrées après intervention.'},
+     ],
+     causes:[
+       {t:'Pression pilote insuffisante (<30-35 bar)',sev:'high',d:'Pas de pilotage du tiroir principal. Vérifier le circuit pilote.'},
+       {t:'Commande électrique / capteur (si OK en manuel)',sev:'high',d:'Si l\'override fonctionne, chercher côté DM / électrovanne / capteur.'},
+       {t:'Pression pompe trop basse',sev:'med',d:'Insuffisante pour le mouvement. Voir tarages pompes.'},
+     ]},
+    {sym:'Manque de pression percussion ou rotation',
+     steps:[
+       {t:'Architecture',d:'Percussion + avance + stabilisateur + PE prennent l\'huile sur la pompe à pistons 1 (à travers le filtre pression 21). Rotation sur la pompe 2.'},
+       {t:'Tarage limiteurs principaux (370.01, Y980)',d:'Limiteurs principaux des deux pompes : .22 percussion (pompe 1) = 310 bar · .01 rotation (pompe 2) = 310 bar.'},
+       {t:'Pression percussion',d:'Contrôlée directement par le réglage de la pompe 1 (demande logicielle). Lire le capteur B1P (.11).'},
+       {t:'Pression rotation',d:'Réglée par le distributeur, limitée par logiciel. Lire le capteur B5P (.08). La vitesse moteur est fixée (~10 tr/min via valve à courbe décroissante, max 206 bar à courant mini).'},
+       {t:'Filtre pression (21)',d:'Sur la sortie de la pompe 1. ΔP switch 2,5 bar, by-pass 3,5 bar. Vérifier s\'il est colmaté.'},
+     ],
+     causes:[
+       {t:'Limiteur principal déréglé (Y980, 310 bar)',sev:'high',d:'Reprendre le tarage du limiteur de la pompe concernée.'},
+       {t:'Pompe à pistons usée',sev:'high',d:'Débit/pression chutent en charge.'},
+       {t:'Filtre pression (21) colmaté',sev:'med',d:'ΔP > 2,5 bar, by-pass à 3,5 bar. Remplacer.'},
+       {t:'Capteur B1P/B5P faux',sev:'med',d:'Mauvaise régulation par le logiciel. Vérifier le 4-20 mA.'},
+     ]},
+    {sym:'Avance saccadée / ne s\'arrête pas franchement',
+     steps:[
+       {t:'Bloc counterbalance vérin d\'avance (41)',d:'La counterbalance valve (.01) assure une descente douce et l\'arrêt. Elle permet le montage différentiel piston/tige.'},
+       {t:'Deux aires de travail',d:'Petite ouverture pour vitesses lentes, pleine ouverture pour avance rapide (~65 bar de pilote en port X3 pour ouvrir complètement le tiroir).'},
+       {t:'Sequence valve (.02)',d:'Sert de limiteur pour les forces externes du vérin. Réglage de base : entièrement vissée / ouverte.'},
+       {t:'Orifice / crépine',d:'Orifice Ø 0,4 mm (.04) et crépine (.05) à vérifier (colmatage = mouvement irrégulier).'},
+       {t:'Mesure de force',d:'2 transducteurs B3P.1 (.06) et B3P.2 (.07) mesurent les pressions piston/tige ; le logiciel calcule la force réelle d\'avance.'},
+     ],
+     causes:[
+       {t:'Counterbalance valve (.01) déréglée/grippée',sev:'high',d:'Descente brutale ou arrêt mou. Contrôler.'},
+       {t:'Pilote X3 insuffisant (<65 bar)',sev:'med',d:'Tiroir ne s\'ouvre pas en grand : pas d\'avance rapide.'},
+       {t:'Orifice 0,4 mm / crépine colmaté',sev:'med',d:'Nettoyer (.04 et .05).'},
+     ]},
+    {sym:'Surchauffe / refroidissement huile hydraulique',
+     steps:[
+       {t:'Cooler (342)',d:'Type huile/air. L\'huile ne passe par la cellule du cooler que lorsque le thermostat est fermé. Même bloc que le refroidissement huile compresseur.'},
+       {t:'Moteur de ventilateur (proportionnel Y920)',d:'Limiteur proportionnel 327.01 / Y920. Quand la lubrification d\'emmanchement est ON, la pression du circuit cooler est ≥ 60 bar pour assurer l\'alimentation de la pompe SLU.'},
+       {t:'Viscosité huile',d:'Cible ~60 cSt à température de service (plage 50-110 cSt). VI > 140 recommandé pour machine mobile.'},
+       {t:'Filtre retour',d:'Switch filtre retour 2,0 bar (312.02). Vérifier le colmatage.'},
+     ],
+     causes:[
+       {t:'Faisceau cooler (342) encrassé',sev:'high',d:'Nettoyer côté air.'},
+       {t:'Valve proportionnelle ventilateur Y920',sev:'med',d:'Voir journal (résistance bobine Y920). Débit d\'air insuffisant.'},
+       {t:'Huile inadaptée (viscosité/VI)',sev:'low',d:'Cible 60 cSt, VI > 140.'},
+       {t:'Filtre retour colmaté (312.02)',sev:'low',d:'Switch à 2,0 bar. Remplacer.'},
+     ]},
+  ],
+};
+
+/* ====================== COMPOSANTS / REPÈRES ====================== */
+const COMPS = [
+  {tag:'B240T',name:'Capteur température compresseur',desc:'Pt1000 sur la bride de sortie d\'air. Mesure le mélange huile/air. Plage -45…150°C (823…1573 Ω).',action:'0°C=1000Ω · 20°C=1078Ω · 100°C=1385Ω · linéaire 3,85 Ω/°C. Hors plage → pop-up + alarme. Aucune action spéciale pour le remplacement.'},
+  {tag:'B605P.1',name:'Capteur de pression récepteur',desc:'Mesure la pression dans l\'air receiver. Comparée à la demande logicielle.',action:'Hors plage (fil coupé/court-circuit/capteur HS) → pop-up + alarme. Si cassé : compresseur en état Off, bypass possible pour flushing.'},
+  {tag:'B605P.2',name:'Switch filtre à air bouché',desc:'Contact normalement ouvert. Si la flèche grise passe au bleu (ou entrée Xex:22 en court-circuit au +), filtre à air bouché.',action:'Remplacer la cartouche du filtre à air. Note affichée à l\'écran.'},
+  {tag:'B606P',name:'Switch filtre à huile bouché',desc:'Pression différentielle 2,5 bar, contact normalement fermé. Si la flèche bleue passe au gris (ou entrée XSt:24 perd le signal, fil coupé), filtre à huile bouché.',action:'Remplacer le filtre à huile (612.03). By-pass interne du filtre s\'ouvre à 3,5 bar.'},
+  {tag:'Y605',name:'Valve de commande intake valve (603)',desc:'Proportionnelle pressure reducing/relieving. Pilote l\'air intake valve. Alimentée depuis le port X du tramming valve.',action:'880 mA = intake valve totalement fermée · 450 mA = totalement ouverte · intermédiaire = partielle. Tiroir déplaçable à la clé Allen 3 mm. Hors plage → pop-up + alarme.'},
+  {tag:'Y920',name:'Valve pompe refroidissement comp./huile',desc:'Commande le ventilateur/pompe de refroidissement.',action:'Sur surchauffe avec ventilateur lent, consulter le journal pour alerte résistance bobine Y920 (fil coupé, court-circuit, bobine HS).'},
+  {tag:'607.02',name:'Air intake valve',desc:'Ressort léger faisant office de clapet anti-retour. Fermée par pression hydraulique.',action:'~23 bar nécessaires pour fermer la valve. Si air par le trou de respiration moteur tournant → remplacer joints de piston.'},
+  {tag:'603',name:'Valve proportionnelle (corps Y605)',desc:'Réduit/décharge la pression pilote de l\'intake valve.',action:'Sans courant : sortie basse, intake valve ouverte. Avec courant : sortie augmente, intake valve se ferme.'},
+  {tag:'613',name:'Thermostat huile compresseur',desc:'En haut du cooler. <65°C : huile par thermostat seul · 65-80°C : thermostat + cooler · >80°C : cooler.',action:'Si température trop haute/basse, nettoyer et vérifier le fonctionnement. Remplacer si nécessaire.'},
+  {tag:'606',name:'Cooler huile compresseur',desc:'Extrémité droite du cooler (gauche = huile hydraulique).',action:'Nettoyer le faisceau. Purger l\'air si mauvaise circulation.'},
+  {tag:'612 / 612.03',name:'Filtre à huile compresseur',desc:'By-pass intégré 3,5 bar. Switch de pression différentielle 612.02 (B606P, 2,5 bar).',action:'Le système affiche un message si bouché. S\'assurer qu\'il n\'y a pas de pression avant ouverture.'},
+  {tag:'604',name:'Air receiver (récepteur)',desc:'Soupape pression mini 1,0 bar (604.02) · soupape sûreté 11,7 bar (604.03) · éléments séparateurs (604.08).',action:'Tester la soupape de sûreté au moins 1×/an selon réglementation locale.'},
+  {tag:'604.03',name:'Soupape de sûreté',desc:'Tarage 11,7 bar sur le récepteur d\'air.',action:'Vérifier la fonction au moins une fois par an.'},
+  {tag:'604.05',name:'Orifice ligne de régénération',desc:'Ø 1,6 mm en haut du récepteur, avec crépine 604.04 et clapet 604.06.',action:'Nettoyer régulièrement (cause de surconsommation d\'huile si colmaté).'},
+  {tag:'CT5',name:'Électrovanne directionnelle SLU',desc:'Valve ON/OFF pilotant la pompe de lubrification d\'emmanchement.',action:'Débrancher CT5 → l\'alarme doit s\'activer après 4 cycles. Si cassée, pas de débit d\'huile.'},
+  {tag:'CT1',name:'Contacteur de contrôle SLU',desc:'La bille du clapet anti-retour de sortie fait office de contacteur (CT1).',action:'Si la bille reste sur le siège ou ouverte 4 cycles → alarme + arrêt des fonctions de forage.'},
+  {tag:'CT7 / CT4',name:'Vis de purge SLU',desc:'CT7 = purge ligne d\'huile · CT4 = purge pompe.',action:'Ouvrir 1-2 tours, refermer quand l\'huile ne contient plus de bulles.'},
+  {tag:'B3P.1',name:'Capteur pression avance avant (port A)',desc:'Feed forward pressure. 4-20 mA, plage 400 bar. Raccordé au DM, bornier XSt:23.',action:'Hors plage = fil coupé/court-circuit/capteur HS. Fil WB3P.1. Substituer pour confirmer.'},
+  {tag:'B3P.2',name:'Capteur pression avance arrière (port B)',desc:'Feed backward pressure. 4-20 mA, plage 400 bar. DM, bornier XSt:24.',action:'Hors plage → pop-up + alarme. Fil WB3P.2.'},
+  {tag:'B125P',name:'Capteur pression stabilisateur',desc:'Stabiliator pressure. 4-20 mA, plage 400 bar. DM, bornier XSt:33.',action:'Hors plage = câblage/capteur. Fil WB125P.'},
+  {tag:'B124P',name:'Switch filtre stabilisateur',desc:'Stabiliator pressure filter switch. Contact DI au bornier XSt:35.',action:'Indique filtre colmaté / pression anormale. Fil WB124P (Bn/Bu).'},
+  {tag:'B5P',name:'Capteur pression rotation',desc:'Rotation pressure. 4-20 mA, plage 400 bar. DM, bornier XSt:34.',action:'Hors plage = câblage/capteur. Fil WB5P.'},
+  {tag:'B10P.2',name:'Capteur pression flushing air',desc:'Air flushing pressure. 4-20 mA, plage 25 bar. DM, bornier XSt:52.',action:'Hors plage = câblage/capteur. Fil WB10P.2.'},
+  {tag:'Y3A / Y3B',name:'Électrovannes d\'avance',desc:'Y3A = avance avant, Y3B = avance arrière. Commande PWM par le DM (XSt:2 / XSt:3).',action:'Avance absente/faible : contrôler bobine, fils WY3 (BN/BU), signal au DM, pression B3P.'},
+  {tag:'Y5A / Y5B',name:'Électrovannes de rotation',desc:'Y5A = rotation CCW, Y5B = rotation CW. Commande DO par le DM (XSt:4 / XSt:5).',action:'Rotation absente : contrôler bobine, fils WY5, signal au DM, pression B5P.'},
+  {tag:'Y780 / Y781',name:'Électrovannes unité d\'échantillonnage',desc:'Y780 = trappe (hatch), Y781 = sampling. Commande DO par le DM (XSt:11 / XSt:13).',action:'Vérifier bobine et fils WY780/WY781 (BN/BU).'},
+  {tag:'S01 / S02 / S03',name:'Capteurs unité d\'échantillonnage',desc:'Contacts DI : S01 control switch front (XSt:36), S02 (XSt:38), S03 bypass line (XSt:39). Boîtier +XSD.',action:'Position incohérente : vérifier contacts, fils W4016/W4017.'},
+  {tag:'B3L',name:'Capteur niveau laser',desc:'Laser level signal. Contact DI au DM (XSt:22). Option RockPulse/TDSP associée.',action:'Vérifier le signal et le câblage WB3L (WH/BR/GN).'},
+  {tag:'B1P',name:'Capteur pression percussion',desc:'Percussion pressure transducer (.11). Pression contrôlée directement par le réglage de la pompe 1.',action:'Demande venant du logiciel. Vérifier le 4-20 mA si régulation anormale.'},
+  {tag:'Y980 / 370.01',name:'Limiteurs principaux des pompes',desc:'Limiteurs de pression principaux des deux pompes à pistons. Proportionnel.',action:'.22 percussion (pompe 1) = 310 bar · .01 rotation (pompe 2) = 310 bar. Reprendre le tarage si dérive.'},
+  {tag:'Y11',name:'Limiteur proportionnel d\'avance',desc:'Proportional pressure relief valve (.14). Contrôle la pression d\'avance max dans les deux sens.',action:'À calibrer avec le distributeur d\'avance Y3A/B. Limiteurs LS mécaniques (.20/.21) associés.'},
+  {tag:'Y125',name:'Limiteur proportionnel stabilisateur',desc:'Proportionally controlled pressure relief valve (.04). Huile prise sur pompe 1 via filtre 21.',action:'Doit être calibré après intervention.'},
+  {tag:'Y920 / 327.01',name:'Limiteur proportionnel ventilateur',desc:'Proportional pressure relief valve. Pilote le moteur de ventilateur de refroidissement.',action:'Lubrif. ON → circuit cooler ≥ 60 bar pour la pompe SLU. Voir journal pour résistance bobine Y920.'},
+  {tag:'Cooler 342',name:'Refroidisseur huile/air',desc:'Type huile/air. L\'huile ne traverse la cellule que thermostat fermé. Bloc commun au refroidissement huile compresseur.',action:'Nettoyer le faisceau côté air si surchauffe.'},
+  {tag:'Filtre 21',name:'Filtre pression (pompe 1)',desc:'Sur la ligne de sortie de la grosse pompe à pistons (pompe 1). Filtration 20 µm abs.',action:'Switch ΔP 2,5 bar · by-pass 3,5 bar. Le système affiche un message si colmaté.'},
+  {tag:'312.02',name:'Switch filtre retour',desc:'Return filter switch, seuil 2,0 bar.',action:'Indique le colmatage du filtre de retour. Remplacer la cartouche.'},
+  {tag:'Bloc 41',name:'Counterbalance vérin d\'avance',desc:'Counterbalance (.01), sequence valve (.02), check valve (.03), orifice Ø 0,4 mm (.04), crépine (.05), transducteurs B3P.1 (.06) / B3P.2 (.07).',action:'Descente douce + arrêt. Pilote X3 ~65 bar pour pleine ouverture (avance rapide).'},
+];
+
+/* ====================== ÉTATS COMPRESSEUR ====================== */
+const STATES = [
+  {name:'Unloading',desc:'Aucune demande de pression du système de commande.'},
+  {name:'Pressurizing',desc:'La pression augmente pour atteindre la demande.'},
+  {name:'Pressurizing error',desc:'La pression demandée ne peut pas être atteinte dans un délai raisonnable.'},
+  {name:'Pressurized',desc:'La pression demandée a été atteinte.'},
+  {name:'Derate',desc:'Pression demandée et capteur de pression bypassé.'},
+  {name:'Warming',desc:'Au démarrage si température basse, le compresseur est réchauffé pour réduire l\'humidité du système.'},
+  {name:'Off',desc:'Moteur arrêté ou intake valve commandée fermée suite à surveillance.'},
+];
+
+/* ====================== DONNÉES TECHNIQUES ====================== */
+const SPECS = [
+  {title:'Seuils de température compresseur (B240T)',rows:[
+    ['Notification surchauffe','105 °C'],
+    ['Alarme surchauffe (moteur au ralenti, pression réduite)','110 °C'],
+    ['Arrêt (coupure moteur diesel)','115 °C'],
+    ['Switch thermique air end','115 °C'],
+  ]},
+  {title:'Commande intake valve (Y605)',rows:[
+    ['Intake valve totalement fermée','880 mA'],
+    ['Intake valve totalement ouverte','450 mA'],
+    ['Fermeture intake valve (607.02)','~23 bar'],
+  ]},
+  {title:'Pressions du circuit air',rows:[
+    ['Pression repos (sans air demandé)','0,5 bar'],
+    ['Soupape pression minimale (604.02)','1,0 bar'],
+    ['Soupape de sûreté (604.03)','11,7 bar'],
+    ['Pression de service max','10 bar'],
+    ['By-pass filtre à huile','3,5 bar'],
+    ['Switch ΔP filtre à huile (B606P)','2,5 bar'],
+  ]},
+  {title:'Fonction de réchauffage à froid',rows:[
+    ['Huile hydraulique < 25°C','4 bar pendant 30 s'],
+    ['Huile hydraulique < -5°C','4 bar pendant 5 min'],
+  ]},
+  {title:'Air end Enduro 25',rows:[
+    ['Débit','13,5 m³/min'],
+    ['Pression de service max','10 bar'],
+    ['Température ambiante max','40…45 °C'],
+    ['Diamètre rotor mâle','171 mm'],
+    ['Rapport d\'engrenage','1 : 2,846'],
+  ]},
+  {title:'Lubrification emmanchement (SLU)',rows:[
+    ['Capacité réservoir huile','30 L'],
+    ['Pression service max','210 bar'],
+    ['Pression lubrification max','25 bar'],
+    ['Reniflard','10 µm'],
+    ['Couple vis fixation pompe','20 Nm'],
+    ['Orifice circulation de réchauffage','0,6 mm'],
+  ]},
+  {title:'Réseaux du bus CAN (DPi)',rows:[
+    ['CAN BB','Bus principal modules'],
+    ['CAN PRG','Programmation'],
+    ['CAN HMI','Interface opérateur'],
+    ['CAN J1939','Moteur (ECM)'],
+    ['Modules clés','FCC, RCC, DM, ECM, SM, ACU'],
+  ]},
+  {title:'Capteurs de pression forage (Drilling Master)',rows:[
+    ['B3P.1 avance avant (port A)','400 bar · 4-20 mA · XSt:23'],
+    ['B3P.2 avance arrière (port B)','400 bar · 4-20 mA · XSt:24'],
+    ['B125P stabilisateur','400 bar · 4-20 mA · XSt:33'],
+    ['B5P rotation','400 bar · 4-20 mA · XSt:34'],
+    ['B10P.2 flushing air','25 bar · 4-20 mA · XSt:52'],
+    ['B124P switch filtre stabilisateur','contact DI · XSt:35'],
+  ]},
+  {title:'Électrovannes forage / rod handling',rows:[
+    ['Y3A / Y3B avance avant/arrière','PWM · XSt:2 / XSt:3'],
+    ['Y5A / Y5B rotation CCW/CW','DO · XSt:4 / XSt:5'],
+    ['Y780 / Y781 unité échantillonnage','DO · XSt:11 / XSt:13'],
+  ]},
+  {title:'Groupe motopropulseur (Powerpack DP1500i T3)',rows:[
+    ['Moteur','Caterpillar C11 (Tier 3)'],
+    ['Pompe hydraulique principale','Pistons axiaux, cylindrée variable 130 cm³/rev'],
+    ['Régime pompe principale','2100 tr/min'],
+    ['2e pompe hydraulique','Pistons axiaux, cylindrée variable'],
+    ['Boîte de transfert','Transfer gearbox 4382-SAE1'],
+    ['Moteur ventilateur refroidissement','Gear motor hydraulique 19 cm³/rev'],
+    ['Réservoir carburant','680 L'],
+    ['Communication moteur','CAN J1939 (ECM)'],
+  ]},
+  {title:'Tarages hydrauliques (valeurs de réglage)',rows:[
+    ['Limiteur principal percussion (Y980, pompe 1)','310 bar'],
+    ['Limiteur principal rotation (Y980, pompe 2)','310 bar'],
+    ['Pression rotation max (courant mini)','206 bar'],
+    ['Pression pilote (override manuel)','30-35 bar'],
+    ['Pilote X3 pleine ouverture avance rapide','~65 bar'],
+    ['Circuit cooler mini (lubrif. ON)','≥ 60 bar'],
+    ['Tarage fixe (réf.)','250 bar'],
+  ]},
+  {title:'Débits & filtration hydraulique',rows:[
+    ['Débit max (pompe 2067 tr/min, moteur 1800)','259 / 220 / 169 l/min selon config'],
+    ['Tiroir principal avance','max 120 l/min (.12)'],
+    ['Tiroir principal (autre fonction)','max 150 l/min (.02)'],
+    ['Filtre pression (21)','20 µm · ΔP 2,5 bar · by-pass 3,5 bar'],
+    ['Switch filtre retour (312.02)','2,0 bar'],
+    ['Viscosité huile cible','~60 cSt (plage 50-110)'],
+    ['Indice de viscosité (VI)','> 140 recommandé'],
+  ]},
+];
+
+/* ====================== NAVIGATION ====================== */
+let curSystem=null;
+function el(id){return document.getElementById(id)}
+function show(id){el(id).classList.remove('hidden')}
+function hide(id){el(id).classList.add('hidden')}
+
+function switchTab(t){
+  ['Alarm','Diag','Comp','State','Spec','Schema','Ui','Docs'].forEach(x=>{
+    el('tab'+x).classList.toggle('active','tab'+x==='tab'+t.charAt(0).toUpperCase()+t.slice(1));
+    el('view'+x).classList.toggle('hidden','view'+x!=='view'+t.charAt(0).toUpperCase()+t.slice(1));
+  });
+}
+
+function renderSystems(){
+  el('systemGrid').innerHTML = SYSTEMS.map(s=>`
+    <div class="sys-card" onclick="openSystem('${s.id}')">
+      <div class="sys-ico" style="background:${s.bg}">${s.ico}</div>
+      <h3>${s.name}</h3>
+      <small>${s.sub}</small>
+    </div>`).join('');
+}
+
+function openSystem(id){
+  curSystem = SYSTEMS.find(s=>s.id===id);
+  el('symHeadTitle').textContent = curSystem.name;
+  el('symHeadIco').textContent = curSystem.ico;
+  el('symHeadIco').style.background = curSystem.bg;
+  el('symHeadNote').innerHTML='';
+  const list = DB[id]||[];
+  el('symptomList').innerHTML = list.map((it,i)=>`
+    <div class="symptom" onclick="openDetail(${i})">
+      <span>${it.sym}</span><span class="arrow">›</span>
+    </div>`).join('') || '<p class="empty">Aucun symptôme enregistré.</p>';
+  hide('lvlSystem'); show('lvlSymptom'); hide('lvlDetail');
+  window.scrollTo(0,0);
+}
+
+function openDetail(i){
+  const item = DB[curSystem.id][i];
+  el('crumbSys2').textContent = curSystem.name;
+  el('crumbSym').textContent = item.sym;
+  el('stepsList').innerHTML = item.steps.map((s,n)=>`
+    <div class="step">
+      <div class="step-num">${n+1}</div>
+      <div class="step-body"><h4>${s.t}</h4><p>${s.d}</p></div>
+    </div>`).join('');
+  const sevLabel={high:'Priorité haute',med:'Moyenne',low:'Faible'};
+  const sevClass={high:'b-high',med:'b-med',low:'b-low'};
+  el('causesList').innerHTML = item.causes.map(c=>`
+    <div class="cause">
+      <div class="top"><h4>${c.t}</h4><span class="badge ${sevClass[c.sev]}">${sevLabel[c.sev]}</span></div>
+      <p>${c.d}</p>
+    </div>`).join('');
+  hide('lvlSymptom'); show('lvlDetail');
+  window.scrollTo(0,0);
+}
+
+function goSystem(){show('lvlSystem');hide('lvlSymptom');hide('lvlDetail');el('searchSymptom').value='';searchSymptoms('');window.scrollTo(0,0);}
+function goSymptom(){show('lvlSymptom');hide('lvlDetail');window.scrollTo(0,0);}
+
+function searchSymptoms(q){
+  q=q.trim().toLowerCase();
+  const grid=el('systemGrid'), res=el('searchResults');
+  if(!q){grid.classList.remove('hidden');res.classList.add('hidden');return;}
+  grid.classList.add('hidden');res.classList.remove('hidden');
+  let hits=[];
+  for(const sysId in DB){
+    DB[sysId].forEach((it,i)=>{
+      if(it.sym.toLowerCase().includes(q)){
+        const sys=SYSTEMS.find(s=>s.id===sysId);
+        hits.push({sysId,i,sym:it.sym,sysName:sys.name,ico:sys.ico});
+      }
+    });
+  }
+  res.innerHTML = hits.length ? hits.map(h=>`
+    <div class="symptom" onclick="openSystem('${h.sysId}');openDetail(${h.i})">
+      <span>${h.ico} ${h.sym} <small style="color:var(--muted)"> · ${h.sysName}</small></span>
+      <span class="arrow">›</span>
+    </div>`).join('') : '<div class="empty"><div class="big">🔍</div>Aucun symptôme trouvé.</div>';
+}
+
+/* Composants */
+function renderComps(list){
+  el('compList').innerHTML = list.length ? list.map(c=>`
+    <div class="ref-card">
+      <div class="top"><span class="ref-tag">${c.tag}</span><h4>${c.name}</h4></div>
+      <div class="desc">${c.desc}</div>
+      <div class="action"><b>Repère :</b> ${c.action}</div>
+    </div>`).join('') : '<div class="empty"><div class="big">📟</div>Aucun composant trouvé.</div>';
+}
+function searchComps(q){
+  q=q.trim().toLowerCase();
+  if(!q){renderComps(COMPS);return;}
+  renderComps(COMPS.filter(c=>
+    c.tag.toLowerCase().includes(q)||c.name.toLowerCase().includes(q)||
+    c.desc.toLowerCase().includes(q)||c.action.toLowerCase().includes(q)));
+}
+
+/* États */
+function renderStates(){
+  el('stateList').innerHTML = STATES.map(s=>`
+    <div class="ref-card">
+      <div class="top"><span class="ref-tag" style="background:var(--sandvik);color:#fff">${s.name}</span></div>
+      <div class="desc" style="margin-bottom:0">${s.desc}</div>
+    </div>`).join('');
+}
+
+/* Specs */
+function renderSpecs(){
+  el('specList').innerHTML = SPECS.map(s=>`
+    <div class="panel">
+      <div class="panel-head"><div class="ico" style="background:#e7f1fb">📐</div><h2>${s.title}</h2></div>
+      <table class="spec"><tbody>
+        ${s.rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}
+      </tbody></table>
+    </div>`).join('');
+}
+
+/* ====================== SCHÉMAS ====================== */
+const WIRE_COLORS = [
+  ['Noir','BK','#1a1a1a'],['Marron','BN','#6b4423'],['Rouge','RD','#c2412d'],
+  ['Orange','OG','#e07b1a'],['Jaune','YE','#e8c019'],['Vert','GN','#1f9d6b'],
+  ['Bleu','BU','#2563c9'],['Violet','VT','#7a4ec2'],['Gris','GY','#8895a7'],
+  ['Blanc','WH','#e8edf3'],['Rose','PK','#e07ba8'],['Turquoise','TQ','#19b5b0'],
+];
+const SIGNAL_TYPES = [
+  ['DI','Entrée numérique (digital input)'],
+  ['DO','Sortie numérique (digital output)'],
+  ['AI','Entrée analogique (analog input)'],
+  ['PWM','Modulation de largeur d\'impulsion'],
+  ['FB','Retour / feedback'],
+  ['GND','Masse (ground)'],
+  ['REF','Tension de référence'],
+];
+const CAN_WIRES = [
+  ['CAN High','Bn (brun)','Ligne CAN-H'],
+  ['CAN Low','Gn (vert)','Ligne CAN-L'],
+  ['Vcc','—','Alimentation'],
+  ['Ground','—','Masse'],
+  ['Shield','Ye/Gn','Blindage relié à la masse'],
+];
+const PART_SEARCH = [
+  'Repérer le composant sur le schéma (ex. relais K13).',
+  'Lire le champ Position pour localiser l\'armoire (ex. cabinet MP).',
+  'Trouver le composant sur le plan d\'implantation de l\'armoire.',
+  'Relever le ou les numéros de référence (ex. K13 → réf. 64 et 65).',
+  'Chercher la référence dans la liste de pièces pour obtenir le n° de pièce (ex. relais 888 152 09, socle 888 153 29).',
+];
+const MARKING = [
+  ['1','Numéro de broche du connecteur'],
+  ['2','Identification du connecteur'],
+  ['3','Identification du composant (repère)'],
+  ['4','Numéro de fil'],
+  ['5','Couleur de fil'],
+  ['6','Identification du câble'],
+  ['7','Spécifications du composant'],
+  ['8','Borne'],
+  ['9','Bornier (terminal block)'],
+];
+
+function renderSchema(){
+  el('schemaList').innerHTML = `
+    <div class="panel">
+      <div class="panel-head"><div class="ico" style="background:#fdeccd">🎨</div><h2>Couleurs de fils</h2></div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+        ${WIRE_COLORS.map(c=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1.5px solid var(--line);border-radius:9px">
+            <span style="width:22px;height:22px;border-radius:6px;background:${c[2]};border:1px solid var(--line);flex-shrink:0"></span>
+            <span style="font-size:13.5px;color:var(--ink)">${c[0]}</span>
+            <span style="margin-left:auto;font-family:'Courier New',monospace;font-weight:800;color:var(--navy)">${c[1]}</span>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div class="ico" style="background:#fef3c7">⚡</div><h2>Convention CAN bus</h2></div>
+      <table class="spec"><tbody>
+        ${CAN_WIRES.map(r=>`<tr><td>${r[0]}</td><td style="text-align:left;color:var(--navy)">${r[1]}</td></tr>`).join('')}
+      </tbody></table>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:10px">Réseaux DP1500i : CAN BB (bus principal), CAN PRG (programmation), CAN HMI (interface), CAN J1939 (moteur). Bus à l'arrêt : ~60 Ω entre CAN-H et CAN-L (2 terminaisons 120 Ω en parallèle).</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div class="ico" style="background:#e7f1fb">📶</div><h2>Types de signaux (modules CAN)</h2></div>
+      <table class="spec"><tbody>
+        ${SIGNAL_TYPES.map(r=>`<tr><td style="font-family:'Courier New',monospace;font-weight:800;color:var(--navy)">${r[0]}</td><td style="text-align:left">${r[1]}</td></tr>`).join('')}
+      </tbody></table>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div class="ico" style="background:#dcf2e8">🔍</div><h2>Trouver une pièce depuis le schéma</h2></div>
+      ${PART_SEARCH.map((s,i)=>`
+        <div class="step">
+          <div class="step-num">${i+1}</div>
+          <div class="step-body"><p style="color:var(--ink)">${s}</p></div>
+        </div>`).join('')}
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><div class="ico" style="background:#e4e0f7">🏷️</div><h2>Marquage des composants</h2></div>
+      <table class="spec"><tbody>
+        ${MARKING.map(r=>`<tr><td style="font-weight:800;color:var(--navy);text-align:left;width:36px">${r[0]}</td><td style="text-align:left">${r[1]}</td></tr>`).join('')}
+      </tbody></table>
+    </div>`;
+}
+
+/* ====================== SYSTÈME v6.0 ====================== */
+const UI_ACCESS = [
+  ['Operator','—','Niveau général opérateur'],
+  ['Supervisor','222222','Peut créer des opérateurs'],
+  ['Maintenance','123210','Peut créer des superviseurs'],
+  ['Factory','61545','Peut créer la maintenance'],
+];
+const UI_NOTES = [
+  {t:'Connexion au démarrage',d:'Au démarrage du système, un pop-up demande la connexion. Se connecter avec un nom a un sens quand les données sont collectées ; un niveau donné ouvre plus de droits (mot de passe requis). Un niveau supérieur crée les niveaux inférieurs.'},
+  {t:'Démarrage moteur non autorisé',d:'Si le démarrage du moteur n\'est pas autorisé, une fenêtre d\'information s\'affiche sous les jauges. Les jauges montrent les valeurs demandées ET mesurées ; les limites d\'alarme apparaissent en rouge dans les barres d\'information.'},
+  {t:'Écran Troubleshooting',d:'Other views → Troubleshooting. Un signal bleu à côté d\'un actionneur indique un signal actif (actionneur commandé ou information lue). Permet de suivre l\'état des entrées/sorties.'},
+  {t:'Jauges : filtrage des lectures',d:'Les lectures analogiques ne sont PAS filtrées (valeur brute, peut fluctuer). Les lectures numériques sont filtrées.'},
+  {t:'Surveillance du flushing',d:'Basée sur la pression au récepteur d\'air. Si la pression tend à monter sans action opérateur, le débit de flushing baisse ; sous la limite réglée (en %), la pression passe au max et l\'avance arrière s\'active. Limite réglée dans Menu → Work Settings → Drilling.'},
+  {t:'Calibration points d\'arrêt avance',d:'Une seule position est calibrée : la pointe de l\'emmanchement (shank). L\'avance s\'arrête sans appuyer sur le bouton avance rapide ; si le joystick n\'est pas centré, le mouvement reprend après ~2 s.'},
+  {t:'Calibration valves',d:'Après intervention, le distributeur d\'avance (Y3A/B) + le limiteur Y11, et le limiteur stabilisateur Y125, doivent être calibrés.'},
+  {t:'Pression d\'avance réduite par tige',d:'On peut définir de combien la pression d\'avance est réduite par tige ajoutée (Menu → Work Settings → Tools).'},
+];
+
+function renderUi(){
+  el('uiList').innerHTML = `
+    <div class="panel">
+      <div class="panel-head"><div class="ico" style="background:#fbe4df">🔑</div><h2>Niveaux d'accès & mots de passe</h2></div>
+      <table class="spec"><tbody>
+        ${UI_ACCESS.map(r=>`<tr><td style="font-weight:700;color:var(--navy);text-align:left">${r[0]}</td><td style="font-family:'Courier New',monospace;text-align:left;color:var(--crit)">${r[1]}</td></tr><tr><td colspan="2" style="color:var(--muted);font-size:12.5px;padding-top:0">${r[2]}</td></tr>`).join('')}
+      </tbody></table>
+      <p style="font-size:12px;color:var(--muted);margin-top:8px">À la création d'un utilisateur, le mot de passe n'est pas obligatoire. Si un mot de passe est requis à la connexion, un cadenas apparaît à côté du nom.</p>
+    </div>
+    ${UI_NOTES.map(nm=>`
+      <div class="ref-card">
+        <div class="top"><h4>${nm.t}</h4></div>
+        <div class="desc" style="margin-bottom:0">${nm.d}</div>
+      </div>`).join('')}`;
+}
+
+/* ====================== BASE D'ALARMES ====================== */
+/* keys = mots-clés (FR + EN) qui peuvent apparaître à l'écran */
+const ALARMS = [
+  {title:'Surchauffe compresseur',
+   keys:['compressor overheat','compressor overheating','surchauffe compresseur','compresseur surchauffe','overheat compressor','b240t','temperature compressor','110','115'],
+   sev:'high',
+   meaning:'La température du mélange huile/air (capteur B240T) a dépassé un seuil. 105°C = notification · 110°C = alarme (moteur au ralenti, pression réduite) · 115°C = arrêt moteur.',
+   causes:['Manque d\'huile compresseur (compléter à ~1/3 du voyant)','Cooler d\'huile (606) encrassé','Thermostat (613) défaillant','Filtre à huile (612.03) colmaté','Ventilateur lent (bobine Y920)','Huile trop visqueuse / moussante'],
+   tests:['Lire la température sous Troubleshooting → Compressor (B240T).','Contrôler le niveau d\'huile (sans surremplir).','Nettoyer le faisceau du cooler 606 (air ≤ 4 bar).','Vérifier le thermostat 613 et la pression repos (doit être 0,5 bar sans air demandé).','Consulter le journal pour alerte résistance bobine Y920.'],
+   sysId:'comp_temp'},
+
+  {title:'Filtre à air bouché (compresseur)',
+   keys:['air filter blocked','air filter clogged','filtre air bouche','filtre a air','b605p.2','air filter'],
+   sev:'med',
+   meaning:'Le switch B605P.2 (contact normalement ouvert) signale un filtre à air colmaté, ou l\'entrée Xex:22 est en court-circuit au +.',
+   causes:['Cartouche du filtre à air colmatée','Switch B605P.2 ou câblage défectueux (court-circuit au +)'],
+   tests:['Remplacer la cartouche du filtre à air (le filtre de sécurité reste en place).','Vérifier le connecteur et le câble du switch B605P.2.','Vérifier l\'indicateur de colmatage du filtre à air.'],
+   sysId:'comp_temp'},
+
+  {title:'Filtre à huile bouché (compresseur)',
+   keys:['oil filter blocked','oil filter clogged','filtre huile bouche','b606p','oil filter','612'],
+   sev:'med',
+   meaning:'Le switch B606P (ΔP 2,5 bar, contact normalement fermé) signale un filtre à huile colmaté, ou l\'entrée XSt:24 a perdu le signal (fil coupé).',
+   causes:['Filtre à huile (612.03) colmaté','Fil coupé sur l\'entrée XSt:24','Switch B606P défectueux'],
+   tests:['S\'assurer qu\'il n\'y a pas de pression avant ouverture.','Remplacer le filtre à huile 612.03.','Vérifier le câble et le connecteur (XSt:24).','By-pass interne du filtre s\'ouvre à 3,5 bar.'],
+   sysId:'comp_oil'},
+
+  {title:'Pression d\'air basse / insuffisante',
+   keys:['air pressure low','low air pressure','pression air basse','insufficient air','pression insuffisante','b605p.1'],
+   sev:'high',
+   meaning:'La pression au récepteur n\'atteint pas la demande. Au repos sans air consommé elle doit être de 0,5 bar.',
+   causes:['Intake valve (607.02) bloquée fermée','Valve proportionnelle 603 / Y605 défaillante','Filtre à air colmaté'],
+   tests:['Démarrer le moteur, lire B605P.1 (doit être 0,5 bar au repos).','Si la pression ne tombe pas à 0,5 bar : contrôler l\'intake valve 607.02 (trou de respiration de la bride).','Vérifier sous Pressure control (Y605) : tiroir déplaçable à la clé Allen 3 mm.','Contrôler bobine et câblage de Y605.'],
+   sysId:'comp_press'},
+
+  {title:'Pression d\'air trop élevée',
+   keys:['air pressure high','high air pressure','pression air elevee','pression trop haute','604.03'],
+   sev:'high',
+   meaning:'La pression monte jusqu\'au tarage de la soupape de sûreté (604.03, 11,7 bar).',
+   causes:['Valve proportionnelle 603 / Y605 fausse le réglage','Joint de piston de l\'intake valve (607.02) fuyard'],
+   tests:['Vérifier sous Pressure control (Y605).','Consulter le journal (résistance bobine du clapet d\'aspiration : fil coupé, court-circuit, bobine HS).','Moteur tournant, intake valve fermée : si l\'air s\'échappe par le trou de respiration au-dessus du piston, remplacer les joints de piston.'],
+   sysId:'comp_press'},
+
+  {title:'Consommation d\'huile compresseur élevée',
+   keys:['oil consumption','consommation huile','high oil consumption','604.05','604.08'],
+   sev:'med',
+   meaning:'Trop d\'huile passe dans l\'air sortant (séparation insuffisante).',
+   causes:['Ligne de régénération colmatée (orifice 604.05, crépine 604.04, clapet 604.06)','Élément séparateur 604.08 percé ou O-ring HS','Surremplissage d\'huile','Huile moussante'],
+   tests:['Nettoyer l\'orifice 604.05 (Ø 1,6 mm), la crépine 604.04 et le clapet 604.06.','Contrôler l\'état des éléments séparateurs 604.08 et leurs O-rings.','Vérifier le niveau d\'huile et le ramener au bon niveau.'],
+   sysId:'comp_oil'},
+
+  {title:'Pas de débit d\'huile d\'emmanchement (SLU)',
+   keys:['no oil flow','shank lubrication','slu','lubrification emmanchement','pas de debit','no flow'],
+   sev:'high',
+   meaning:'La lubrification de l\'emmanchement ne débite plus. Si la bille de contrôle (CT1) reste sur le siège ou ouverte 4 cycles → alarme + arrêt des fonctions de forage.',
+   causes:['Niveau d\'huile trop bas','Aspiration / tube intérieur colmaté','Électrovanne (CT5) ou fil cassé','Viscosité trop haute','Flexible de pression endommagé'],
+   tests:['Ajouter l\'huile et purger la pompe avec la vis CT7.','Contrôler et nettoyer le réservoir / le tube intérieur.','Débrancher CT5 : l\'alarme doit s\'activer après 4 cycles.','Vérifier la valve solénoïde et son câblage.'],
+   sysId:'slu'},
+
+  {title:'Alarme de contrôle SLU (débit normal)',
+   keys:['control alarm','slu alarm','alarme controle','flow switch','flow monitoring'],
+   sev:'med',
+   meaning:'Le débit est normal mais l\'unité de surveillance déclenche une alarme.',
+   causes:['Fil du bouchon de commande cassé','Huile sale et conductrice','Capteur de débit usé (bille corrodée)'],
+   tests:['Contrôler et remplacer le fil du bouchon de commande.','Vidanger l\'huile du réservoir SLU.','Contrôler / remplacer l\'ensemble flow-switch.'],
+   sysId:'slu'},
+
+  {title:'Capteur hors plage (pop-up + alarme)',
+   keys:['sensor out of range','out of range','capteur hors plage','wire cut','short circuit','fil coupe','court-circuit','signal range'],
+   sev:'high',
+   meaning:'Un signal de capteur est hors plage (fil coupé, court-circuit ou capteur HS). Concerne notamment Y605, B605P.1, B240T, et les capteurs de forage 4-20 mA.',
+   causes:['Faisceau coupé ou en court-circuit','Capteur défectueux','Bobine de valve (Y605) défaillante'],
+   tests:['Identifier le capteur dans le pop-up / journal.','Vérifier continuité et court-circuit (masse / +) du faisceau.','Contrôler l\'alimentation et le connecteur.','Confirmer par substitution d\'un capteur sain.'],
+   sysId:'can'},
+
+  {title:'Perte de communication CAN',
+   keys:['can','communication','bus','j1939','communication error','perte communication','module','no communication'],
+   sev:'high',
+   meaning:'Un module ne dialogue plus sur le bus (CAN BB, PRG, HMI ou J1939 moteur).',
+   causes:['Terminaison de bus manquante / HS','Alimentation ou masse module absente','Connecteur corrodé','Module défaillant qui bloque le bus'],
+   tests:['Identifier le module muet (FCC, RCC, DM, ECM, SM, ACU).','Bus à l\'arrêt : mesurer ~60 Ω entre CAN-H et CAN-L.','Contrôler 24V et masses à la boîte de jonction.','Isoler en déconnectant module par module.'],
+   sysId:'can'},
+
+  {title:'Switch filtre stabilisateur (B124P)',
+   keys:['stabilizer filter','stabiliator filter','b124p','filtre stabilisateur'],
+   sev:'med',
+   meaning:'Le switch B124P (contact DI, XSt:35) signale un filtre stabilisateur colmaté ou une pression anormale.',
+   causes:['Filtre stabilisateur colmaté','Contact ou câblage du switch HS'],
+   tests:['Nettoyer / remplacer le filtre stabilisateur.','Vérifier le fil WB124P (Bn/Bu) et le connecteur XSt:35.'],
+   sysId:'drilling'},
+
+  {title:'Avance ou rotation absente',
+   keys:['feed','rotation','no feed','no rotation','avance','y3a','y3b','y5a','y5b','feed movement'],
+   sev:'high',
+   meaning:'Une fonction d\'avance (Y3A/Y3B) ou de rotation (Y5A/Y5B) ne répond pas.',
+   causes:['Bobine d\'électrovanne (Y3/Y5) HS','Signal de commande DM absent','Pression hydraulique insuffisante','Pression pilote < 30-35 bar'],
+   tests:['Tester avec le bouton d\'override manuel (pilote 30-35 bar + pression pompe suffisante requis).','Si ça bouge en manuel mais pas en auto → défaut électrique (DM / capteur).','Vérifier la bobine et le câblage (WY3/WY5).','Recouper avec B3P.1/.2 (avance) ou B5P (rotation).'],
+   sysId:'hydro'},
+
+  {title:'Surchauffe huile hydraulique',
+   keys:['hydraulic oil temperature','hydraulic overheat','surchauffe hydraulique','oil temperature','huile hydraulique','312.02','return filter'],
+   sev:'med',
+   meaning:'Température de l\'huile hydraulique trop élevée ou filtre retour colmaté.',
+   causes:['Faisceau cooler (342) encrassé','Valve proportionnelle ventilateur Y920','Huile inadaptée (viscosité / VI)','Filtre retour colmaté (312.02, 2,0 bar)'],
+   tests:['Nettoyer le faisceau du cooler 342 côté air.','Consulter le journal (résistance bobine Y920).','Vérifier la viscosité (cible 60 cSt, VI > 140).','Contrôler le filtre retour (switch 2,0 bar).'],
+   sysId:'hydro'},
+
+  {title:'Le moteur ne démarre pas (CAT C11)',
+   keys:['engine not start','no start','moteur ne demarre','engine start not allowed','start not allowed','cat c11','engine'],
+   sev:'high',
+   meaning:'Le moteur Caterpillar C11 ne démarre pas, ou le démarrage n\'est pas autorisé (fenêtre d\'info sous les jauges).',
+   causes:['Filtre carburant colmaté / air dans le circuit','Batteries faibles ou masse défectueuse','Code ECM bloquant (J1939)','Condition de démarrage non remplie'],
+   tests:['Lire les codes J1939 actifs (Cat ET) avant tout.','Vérifier niveau carburant (680 L), filtre CAT C11, eau/air.','Mesurer la tension batteries (≥24V) et les masses.','Vérifier le message sous les jauges (démarrage non autorisé).'],
+   sysId:'powerpack'},
+
+  {title:'Surchauffe moteur',
+   keys:['engine overheat','engine temperature','surchauffe moteur','coolant temperature','engine cooler'],
+   sev:'high',
+   meaning:'Température du moteur CAT C11 trop élevée.',
+   causes:['Faisceau radiateur (engine cooler) encrassé','Moteur hydraulique de ventilateur (19 cm³) défaillant','Thermostat moteur bloqué','Niveau liquide bas / fuite'],
+   tests:['Contrôler le vase d\'expansion (surge tank) et les durites.','Nettoyer le faisceau du radiateur (air ≤ 4 bar, à contre-sens).','Vérifier l\'entraînement du moteur de ventilateur hydraulique.','Recouper avec la température ECM.'],
+   sysId:'powerpack'},
+];
+
+/* ====================== ANALYSE & HISTORIQUE ====================== */
+const HKEY='dpi_alarm_history_v1';
+function getHistory(){try{return JSON.parse(localStorage.getItem(HKEY)||'[]')}catch(e){return[]}}
+function saveHistory(h){try{localStorage.setItem(HKEY,JSON.stringify(h.slice(0,50)))}catch(e){}}
+
+function scoreAlarm(a,q){
+  let s=0;
+  a.keys.forEach(k=>{ if(q.includes(k)) s+=Math.max(2,k.length/4); });
+  // mots individuels
+  q.split(/\s+/).filter(w=>w.length>2).forEach(w=>{
+    if(a.title.toLowerCase().includes(w)) s+=2;
+    a.keys.forEach(k=>{ if(k.includes(w)) s+=1; });
+  });
+  return s;
+}
+
+let lastQuery='';
+function analyzeAlarm(q){
+  lastQuery=q;
+  q=q.trim().toLowerCase();
+  const res=el('alarmResult');
+  if(q.length<2){ res.innerHTML=''; renderHistory(); return; }
+  const ranked=ALARMS.map(a=>({a,s:scoreAlarm(a,q)})).filter(x=>x.s>0).sort((x,y)=>y.s-x.s).slice(0,3);
+  if(!ranked.length){
+    res.innerHTML=`<div class="empty"><div class="big">🤔</div>Aucune correspondance trouvée pour « ${escapeHtml(lastQuery)} ».<br><span style="font-size:12.5px">Essaie des mots-clés du message (ex. « overheat », « filter », « pressure », « feed »), ou consulte l'onglet Diagnostic.</span></div>
+      <div style="text-align:center;margin-top:10px"><button onclick="logAlarm('','Non identifié')" style="background:var(--navy);color:#fff;border:none;padding:10px 16px;border-radius:10px;font-weight:700;cursor:pointer">📌 Enregistrer ce message à l'historique</button></div>`;
+    return;
+  }
+  const sevLabel={high:'Priorité haute',med:'Moyenne',low:'Faible'};
+  const sevClass={high:'b-high',med:'b-med',low:'b-low'};
+  res.innerHTML = ranked.map((x,i)=>{
+    const a=x.a;
+    return `<div class="panel" style="${i===0?'border-color:var(--amber)':''}">
+      <div class="panel-head">
+        <div class="ico" style="background:${i===0?'#fbe4df':'#eef2f7'}">${i===0?'🎯':'•'}</div>
+        <h2>${a.title}</h2>
+        <span class="badge ${sevClass[a.sev]}" style="margin-left:auto">${sevLabel[a.sev]}</span>
+      </div>
+      <div class="info" style="margin:0 0 12px">${a.meaning}</div>
+      <h4 style="font-size:13.5px;color:var(--navy);margin-bottom:8px">🎯 Causes probables</h4>
+      ${a.causes.map(c=>`<div class="cause" style="margin-bottom:6px"><p style="color:var(--ink)">${c}</p></div>`).join('')}
+      <h4 style="font-size:13.5px;color:var(--navy);margin:12px 0 8px">🔎 Tests à réaliser</h4>
+      ${a.tests.map((t,n)=>`<div class="step"><div class="step-num">${n+1}</div><div class="step-body"><p style="color:var(--ink)">${t}</p></div></div>`).join('')}
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="logAlarm('${escapeAttr(a.title)}','résolu')" style="background:var(--ok);color:#fff;border:none;padding:9px 14px;border-radius:9px;font-weight:700;cursor:pointer;font-size:13px">✅ Enregistrer (résolu)</button>
+        <button onclick="logAlarm('${escapeAttr(a.title)}','en cours')" style="background:var(--warn);color:#fff;border:none;padding:9px 14px;border-radius:9px;font-weight:700;cursor:pointer;font-size:13px">🕒 Enregistrer (en cours)</button>
+        ${a.sysId?`<button onclick="openSystem('${a.sysId}');switchTab('diag')" style="background:#fff;color:var(--navy);border:1.5px solid var(--line);padding:9px 14px;border-radius:9px;font-weight:700;cursor:pointer;font-size:13px">→ Diagnostic détaillé</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function logAlarm(title,status){
+  const h=getHistory();
+  const now=new Date();
+  const stamp=now.toLocaleDateString('fr-FR')+' '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  h.unshift({msg:lastQuery,diag:title||'(message brut)',status:status,date:stamp});
+  saveHistory(h);
+  renderHistory();
+}
+function deleteHistory(i){
+  const h=getHistory(); h.splice(i,1); saveHistory(h); renderHistory();
+}
+function clearHistory(){
+  if(confirm('Effacer tout l\'historique des pannes ?')){ saveHistory([]); renderHistory(); }
+}
+function renderHistory(){
+  const h=getHistory();
+  const box=el('alarmHistory');
+  if(!h.length){ box.innerHTML=`<div class="panel" style="margin-top:14px"><div class="panel-head"><div class="ico" style="background:#eef2f7">📋</div><h2>Historique des pannes</h2></div><p style="color:var(--muted);font-size:13.5px">Aucune panne enregistrée pour l'instant.</p></div>`; return; }
+  const stClass={'résolu':'b-low','en cours':'b-med','Non identifié':'b-high'};
+  box.innerHTML=`<div class="panel" style="margin-top:14px">
+    <div class="panel-head"><div class="ico" style="background:#eef2f7">📋</div><h2>Historique des pannes (${h.length})</h2>
+      <button onclick="clearHistory()" style="margin-left:auto;background:none;border:1.5px solid var(--line);color:var(--crit);padding:6px 11px;border-radius:8px;font-weight:700;cursor:pointer;font-size:12px">Tout effacer</button>
+    </div>
+    ${h.map((e,i)=>`
+      <div style="border:1.5px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:9px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:12px;color:var(--muted)">${e.date}</span>
+          <span class="badge ${stClass[e.status]||'b-med'}" style="margin-left:auto">${e.status}</span>
+        </div>
+        <div style="font-weight:700;color:var(--navy);font-size:14px">${escapeHtml(e.diag)}</div>
+        ${e.msg?`<div style="font-size:12.5px;color:var(--muted);margin-top:2px">Message : « ${escapeHtml(e.msg)} »</div>`:''}
+        <button onclick="deleteHistory(${i})" style="margin-top:6px;background:none;border:none;color:var(--crit);font-size:12px;cursor:pointer;padding:0;font-weight:600">Supprimer</button>
+      </div>`).join('')}
+  </div>`;
+}
+function escapeHtml(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function escapeAttr(s){return (s||'').replace(/'/g,"\\'").replace(/"/g,'&quot;')}
+
+/* ====================== OCR PHOTO ====================== */
+function setOcrStatus(msg,type){
+  const s=el('ocrStatus');
+  s.style.display='block';
+  const colors={info:['#e7f1fb','#1d4276'],work:['#fdeccd','#d98314'],ok:['#dcf2e8','#1f9d6b'],err:['#fbe4df','#c2412d']};
+  const c=colors[type]||colors.info;
+  s.style.background=c[0]; s.style.color=c[1];
+  s.innerHTML=msg;
+}
+
+async function handlePhoto(input){
+  const file=input.files&&input.files[0];
+  if(!file) return;
+  // aperçu
+  const url=URL.createObjectURL(file);
+  el('ocrPreview').innerHTML=`<div style="margin-bottom:12px"><img src="${url}" style="width:100%;border-radius:11px;border:1.5px solid var(--line)"></div>`;
+
+  if(typeof Tesseract==='undefined'){
+    setOcrStatus('⚠️ Module OCR non chargé. La première utilisation nécessite une connexion internet. Reconnecte-toi et réessaie, ou saisis le message à la main.','err');
+    return;
+  }
+  setOcrStatus('🔄 Lecture du texte en cours… (le premier lancement télécharge l\'outil, ~2-4 Mo)','work');
+  try{
+    const {data}=await Tesseract.recognize(file,'eng',{
+      logger:m=>{
+        if(m.status==='recognizing text'){
+          setOcrStatus('🔄 Lecture du texte… '+Math.round((m.progress||0)*100)+'%','work');
+        }
+      }
+    });
+    let text=(data.text||'').replace(/\s+/g,' ').trim();
+    if(!text){
+      setOcrStatus('🤔 Aucun texte lisible détecté. Reprends la photo bien cadrée sur le message, ou saisis-le à la main.','err');
+      return;
+    }
+    setOcrStatus('✅ Texte lu : « '+escapeHtml(text.slice(0,120))+(text.length>120?'…':'')+' »<br><span style="font-weight:400;font-size:12.5px">Tu peux corriger le texte dans le champ ci-dessous si besoin.</span>','ok');
+    el('alarmInput').value=text;
+    analyzeAlarm(text);
+  }catch(e){
+    setOcrStatus('⚠️ Erreur de lecture. Vérifie la connexion (premier usage) ou saisis le message à la main.','err');
+  }
+}
+
+/* ====================== INDEX DOCUMENTAIRE (recherche composant -> page) ====================== */
+/* file = nom du PDF tel que déposé sur GitHub, à côté de l'app.
+   page = numéro de page imprimé dans le PDF.
+   en/fr = noms du composant pour la recherche bilingue. tag = repère. */
+const DOC_FILES = {
+  compressor:{name:'Compressor & air circuit', file:'compressor.pdf'},
+  slu:{name:'Shank lubrication (SLU)', file:'compressor.pdf'},
+  bus:{name:'Bus structure (CAN)', file:'5_Bus_structure_SW_6.pdf'},
+  electric:{name:'Electric system, parts', file:'05.pdf'},
+  drilling:{name:'Drilling & Rod Handling', file:'EDlinked.pdf'},
+  powerpack:{name:'Powerpack, parts', file:'12.pdf'},
+};
+
+const DOC_INDEX = [
+  // --- Compresseur & circuit d'air ---
+  {tag:'B240T', en:'compressor temperature sensor', fr:'capteur température compresseur', doc:'compressor', page:17, note:'Pt1000 sur la bride de sortie d\'air. Seuils 105/110/115°C.'},
+  {tag:'607.02', en:'air intake valve', fr:'valve d\'admission d\'air', doc:'compressor', page:21, note:'Fermée par pression hydraulique ~23 bar.'},
+  {tag:'603 / Y605', en:'air intake control valve', fr:'valve de commande admission', doc:'compressor', page:22, note:'Proportionnelle. 880 mA fermé / 450 mA ouvert.'},
+  {tag:'604', en:'air receiver', fr:'récepteur d\'air', doc:'compressor', page:24, note:'Soupape sûreté 11,7 bar (604.03), mini 1,0 bar.'},
+  {tag:'604.03', en:'safety relief valve', fr:'soupape de sûreté', doc:'compressor', page:24, note:'Tarage 11,7 bar.'},
+  {tag:'612 / B606P', en:'compressor oil filter / water separator', fr:'filtre à huile compresseur / séparateur d\'eau', doc:'compressor', page:26, note:'ΔP switch 2,5 bar, by-pass 3,5 bar.'},
+  {tag:'613', en:'compressor oil thermostat', fr:'thermostat huile compresseur', doc:'compressor', page:35, note:'En haut du cooler. Test/remplacement.'},
+  {tag:'606', en:'compressor oil cooler / radiator', fr:'refroidisseur / radiateur huile compresseur', doc:'compressor', page:36, note:'Nettoyage du faisceau, air ≤ 4 bar.'},
+  {tag:'603 / Y605', en:'pressure reducing relieving valve', fr:'valve réductrice de pression', doc:'compressor', page:18, note:'Contrôle compresseur.'},
+  {tag:'B605P.1', en:'receiver pressure sensor', fr:'capteur pression récepteur', doc:'compressor', page:39, note:'Mesure pression air receiver (écran diagnostic).'},
+  {tag:'B605P.2', en:'air filter blocked switch', fr:'switch filtre à air bouché', doc:'compressor', page:39, note:'Contact NO, entrée Xex:22.'},
+  // troubleshooting compresseur
+  {tag:'—', en:'air pressure low troubleshooting', fr:'dépannage pression air basse', doc:'compressor', page:41, note:'Procédure pression basse/insuffisante.'},
+  {tag:'—', en:'air pressure too high', fr:'pression air trop élevée', doc:'compressor', page:42, note:'Procédure pression haute.'},
+  {tag:'—', en:'compressor overheated', fr:'compresseur en surchauffe', doc:'compressor', page:42, note:'Procédure surchauffe (8 causes).'},
+  {tag:'—', en:'oil consumption too high', fr:'consommation d\'huile élevée', doc:'compressor', page:43, note:'Procédure surconsommation huile.'},
+  {tag:'—', en:'manual power pack control', fr:'commande manuelle du groupe', doc:'compressor', page:45, note:'Test soupape de sûreté.'},
+  // --- SLU (même PDF compressor.pdf, section shank lubrication) ---
+  {tag:'SLU', en:'shank lubrication main components', fr:'composants lubrification emmanchement', doc:'slu', page:11, note:'Réservoir, niveau, pompe, valve d\'air.'},
+  {tag:'CT5', en:'shank lubrication pump operation', fr:'fonctionnement pompe emmanchement', doc:'slu', page:15, note:'Pompe piston électro-hydraulique.'},
+  {tag:'CT7 / CT4', en:'bleeding shank lubrication', fr:'purge lubrification emmanchement', doc:'slu', page:23, note:'Purge ligne (CT7) et pompe (CT4).'},
+  {tag:'—', en:'shank lubrication troubleshooting table', fr:'tableau de dépannage emmanchement', doc:'slu', page:27, note:'Débit nul / faible / élevé / alarme.'},
+  // --- Bus CAN ---
+  {tag:'CAN', en:'pantera dpi bus structure', fr:'structure du bus CAN', doc:'bus', page:7, note:'Schéma global modules (FCC, RCC, DM, ECM...).'},
+  {tag:'DM', en:'drilling master location', fr:'localisation drilling master', doc:'bus', page:7, note:'Sur le boom.'},
+  {tag:'FCC / RCC', en:'carrier controllers', fr:'contrôleurs porteur', doc:'bus', page:7, note:'Front / Rear Carrier Controller.'},
+  // --- Electric system parts ---
+  {tag:'—', en:'wire color abbreviations', fr:'abréviations couleurs de fils', doc:'electric', page:16, note:'BK, BN, RD, OG, YE, GN, BU, VT, GY, WH, PK, TQ.'},
+  {tag:'—', en:'searching spare part from schematics', fr:'rechercher une pièce sur le schéma', doc:'electric', page:15, note:'Schéma → Position → armoire → repère.'},
+  {tag:'—', en:'component identification marking', fr:'marquage identification composant', doc:'electric', page:22, note:'Broche, connecteur, repère, fil, couleur.'},
+  {tag:'CAN', en:'can bus wiring example', fr:'exemple de câblage CAN', doc:'electric', page:24, note:'CAN-H (Bn), CAN-L (Gn), Vcc, GND, shield.'},
+  // --- Drilling & Rod handling ---
+  {tag:'B3P.1', en:'feed forward pressure sensor (port A)', fr:'capteur pression avance avant', doc:'drilling', page:19, note:'400 bar, 4-20 mA, XSt:23.'},
+  {tag:'B3P.2', en:'feed backward pressure sensor (port B)', fr:'capteur pression avance arrière', doc:'drilling', page:19, note:'400 bar, 4-20 mA, XSt:24.'},
+  {tag:'B125P', en:'stabilizer pressure sensor', fr:'capteur pression stabilisateur', doc:'drilling', page:19, note:'400 bar, 4-20 mA, XSt:33.'},
+  {tag:'B124P', en:'stabilizer filter switch', fr:'switch filtre stabilisateur', doc:'drilling', page:19, note:'Contact DI, XSt:35.'},
+  {tag:'B5P', en:'rotation pressure sensor', fr:'capteur pression rotation', doc:'drilling', page:19, note:'400 bar, 4-20 mA, XSt:34.'},
+  {tag:'B10P.2', en:'air flushing pressure sensor', fr:'capteur pression flushing air', doc:'drilling', page:19, note:'25 bar, 4-20 mA, XSt:52.'},
+  {tag:'Y3A / Y3B', en:'feed valves forward backward', fr:'électrovannes d\'avance', doc:'drilling', page:16, note:'Commande PWM.'},
+  {tag:'Y5A / Y5B', en:'rotation valves ccw cw', fr:'électrovannes de rotation', doc:'drilling', page:16, note:'Commande DO.'},
+  {tag:'Y780 / Y781', en:'sampling unit valves', fr:'électrovannes unité échantillonnage', doc:'drilling', page:20, note:'Trappe et sampling.'},
+  {tag:'S01/S02/S03', en:'sampling unit sensors', fr:'capteurs unité échantillonnage', doc:'drilling', page:20, note:'Contacts DI, boîtier +XSD.'},
+  // --- Powerpack ---
+  {tag:'C11', en:'engine caterpillar c11', fr:'moteur caterpillar c11', doc:'powerpack', page:1, note:'Moteur Tier 3 de la DP1500i.'},
+  {tag:'—', en:'main hydraulic pump axial piston', fr:'pompe hydraulique principale à pistons', doc:'powerpack', page:1, note:'130 cm³/rev à 2100 tr/min.'},
+];
+
+function docHref(d){
+  const f=DOC_FILES[d.doc];
+  if(!f) return null;
+  return './'+f.file+'#page='+d.page;
+}
+function docName(d){ const f=DOC_FILES[d.doc]; return f?f.name:d.doc; }
+
+function docCardHtml(d){
+  return `<div class="ref-card">
+    <div class="top"><span class="ref-tag">${d.tag}</span><h4>${d.fr}</h4></div>
+    <div class="desc">${d.en} · ${d.note||''}</div>
+    <div class="action" style="border-left-color:var(--amber)"><b>📄 ${docName(d)}</b> &nbsp;→&nbsp; <b style="color:var(--amber)">page ${d.page}</b><br><span style="font-size:12px;color:var(--muted)">Ouvre ce document depuis tes fichiers (app Fichiers / Books) et va à la page ${d.page}.</span></div>
+  </div>`;
+}
+
+function scoreDoc(d,q){
+  let s=0;
+  const hay=(d.tag+' '+d.en+' '+d.fr+' '+(d.note||'')).toLowerCase();
+  if(hay.includes(q)) s+=3;
+  q.split(/\s+/).filter(w=>w.length>2).forEach(w=>{ if(hay.includes(w)) s+=1; });
+  if(d.tag.toLowerCase()===q || d.tag.toLowerCase().includes(q)) s+=4;
+  return s;
+}
+function searchDocs(q){
+  q=(q||'').trim().toLowerCase();
+  const res=el('docResult'), all=el('docListAll');
+  if(q.length<2){ res.innerHTML=''; renderDocListAll(); return; }
+  all.innerHTML='';
+  const ranked=DOC_INDEX.map(d=>({d,s:scoreDoc(d,q)})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,8);
+  if(!ranked.length){
+    res.innerHTML=`<div class="empty"><div class="big">🔍</div>Aucun composant trouvé pour « ${escapeHtml(q)} ».<br><span style="font-size:12.5px">Essaie un repère (B240T, Y605) ou un nom (FR/EN).</span></div>`;
+    return;
+  }
+  res.innerHTML=ranked.map(x=>docCardHtml(x.d)).join('');
+}
+function renderDocListAll(){
+  // liste groupée par document quand aucune recherche
+  const groups={};
+  DOC_INDEX.forEach(d=>{ (groups[d.doc]=groups[d.doc]||[]).push(d); });
+  let h='';
+  for(const k in groups){
+    h+=`<div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber,#f0a818);margin:16px 0 8px">${docName(groups[k][0])} (${groups[k].length})</div>`;
+    h+=groups[k].map(docCardHtml).join('');
+  }
+  el('docListAll').innerHTML=h;
+}
+
+/* Init */
+renderSystems();
+renderComps(COMPS);
+renderStates();
+renderSpecs();
+renderSchema();
+renderUi();
+renderHistory();
+renderDocListAll();
+
+/* Service worker pour le hors-ligne */
+if("serviceWorker" in navigator){
+  window.addEventListener("load",function(){
+    navigator.serviceWorker.register("./service-worker.js").catch(function(){});
+  });
+}
+</script>
+
+</body>
+</html>
